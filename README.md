@@ -20,9 +20,20 @@ The key is loaded from `.env` in this folder first, then from the folder one lev
 ## Run
 ```bash
 python test_call.py                 # smoke test model call
+python analyze_reports.py           # Report Analyst on every PDF in data/reports/
 uvicorn backend.main:app --reload   # API at http://localhost:8000/health
 ```
 
 ## Token usage
 Every model call made through `backend.llm.run_logged()` appends input, cached input, and
 output token counts (from the API response) to `logs/usage_log.json`.
+
+## Report Analyst
+Drop employment report PDFs in `data/reports/` and run `python analyze_reports.py`.
+- Reads each PDF page by page (pypdf), tags pages with `=== PAGE n ===`, and asks `gpt-6-luna` for a
+  `ReportExtraction` (see `backend/models.py`): company, internship/full-time/both, function, location, page.
+- **No invented companies:** after the model answers, each company is checked against the text of the page it
+  cited. If the name isn't on that page, it's dropped and listed in the output.
+- Results go to SQLite at `data/employers.db` (`reports` and `employers` tables).
+- PDFs already in the database are skipped to save tokens; `--force` re-analyzes them.
+- Scanned (image-only) PDFs have no text and are reported as errors.

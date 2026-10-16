@@ -12,3 +12,8 @@ Set up the project in this folder:
 - Set up git, but don't push yet.
 
 When done, run a one-line test call to the model so I can see it works.
+
+## 2. Report Analyst agent
+Build the Report Analyst agent. It reads one employment report PDF from data/reports/ and returns structured output (Pydantic) with a list of employers. For each employer: company name, internship or full-time or both, function (consulting, finance, tech, etc.), location if the report says it, and the page number it came from.
+
+Save the results to a SQLite database. Add a command that runs it on every PDF in data/reports/ and prints a table of the results. Don't invent companies: every company must come with a page number from the report.

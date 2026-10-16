@@ -3,3 +3,4 @@ pydantic-ai-slim[openai]>=1.0
 fastapi
 uvicorn[standard]
 python-dotenv
+pypdf
