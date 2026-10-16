@@ -37,3 +37,13 @@ Drop employment report PDFs in `data/reports/` and run `python analyze_reports.p
 - Results go to SQLite at `data/employers.db` (`reports` and `employers` tables).
 - PDFs already in the database are skipped to save tokens; `--force` re-analyzes them.
 - Scanned (image-only) PDFs have no text and are reported as errors.
+
+## Geo Verifier
+`python verify_geo.py --school Rotman` (default country Canada; `--country`, `--limit` options).
+- For each company in the database, `gpt-6-luna` uses OpenAI's built-in web search (through Portkey; no extra
+  API key) to find the careers page and check for offices/job postings in the country.
+- Saves careers URL, hires_in_country (yes/no/unsure), evidence URL + text, and date to the `geo_checks` table.
+- Web content is treated as untrusted data: the prompt says so, and code double-checks the answer
+  (URLs must be real URLs; yes/no needs an evidence URL; "yes" evidence must mention the country, else "unsure").
+- Cached: a company checked for the same country in the last 7 days is skipped. Max 50 companies per run.
+- Cost: ~19k input tokens and a few web searches per company (logged in `logs/usage_log.json`).

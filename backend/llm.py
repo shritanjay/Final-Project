@@ -7,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -20,12 +20,21 @@ MODEL_NAME = "gpt-6-luna"  # the only model this project uses
 PORTKEY_BASE_URL = "https://api.portkey.ai/v1"
 
 
-def model() -> OpenAIChatModel:
+def _provider() -> OpenAIProvider:
     key = os.getenv("PORTKEY_API_KEY", "").strip()
     if not key:
         raise RuntimeError("PORTKEY_API_KEY is not set (put it in .env here or one folder up).")
     client = AsyncOpenAI(api_key=key, base_url=PORTKEY_BASE_URL, default_headers={"x-portkey-api-key": key})
-    return OpenAIChatModel(MODEL_NAME, provider=OpenAIProvider(openai_client=client))
+    return OpenAIProvider(openai_client=client)
+
+
+def model() -> OpenAIChatModel:
+    return OpenAIChatModel(MODEL_NAME, provider=_provider())
+
+
+def responses_model() -> OpenAIResponsesModel:
+    """Responses API: needed for OpenAI's built-in web search (billed through the same Portkey key)."""
+    return OpenAIResponsesModel(MODEL_NAME, provider=_provider())
 
 
 def log_usage(label: str, usage) -> dict:
@@ -38,6 +47,7 @@ def log_usage(label: str, usage) -> dict:
         "input_tokens": usage.input_tokens,
         "cached_input_tokens": usage.cache_read_tokens,
         "output_tokens": usage.output_tokens,
+        "web_searches": usage.web_searches,
     }
     USAGE_LOG.parent.mkdir(exist_ok=True)
     log = json.loads(USAGE_LOG.read_text()) if USAGE_LOG.exists() else []

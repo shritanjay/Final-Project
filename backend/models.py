@@ -21,3 +21,13 @@ class Employer(BaseModel):
 class ReportExtraction(BaseModel):
     school: str | None = Field(None, description="Business school that published the report, if stated")
     employers: list[Employer]
+
+
+HiresAnswer = Literal["yes", "no", "unsure"]
+
+
+class GeoCheck(BaseModel):
+    careers_url: str | None = Field(None, description="Official careers page URL on the company's own domain or its ATS")
+    hires_in_country: HiresAnswer = Field(description="yes = offices or job postings found in the country; no = clear evidence it doesn't; unsure = otherwise")
+    evidence_url: str | None = Field(None, description="URL of the page that proves the answer")
+    evidence_text: str | None = Field(None, description="Short quote or summary from that page (max ~200 chars)")

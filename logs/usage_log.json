@@ -16,5 +16,35 @@
     "input_tokens": 518,
     "cached_input_tokens": 0,
     "output_tokens": 391
+  },
+  {
+    "time": "2026-10-16T03:48:29+00:00",
+    "label": "geo_verifier:Shopify:Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 21984,
+    "cached_input_tokens": 0,
+    "output_tokens": 559,
+    "web_searches": 8
+  },
+  {
+    "time": "2026-10-16T03:48:44+00:00",
+    "label": "geo_verifier:Shopify:Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13840,
+    "cached_input_tokens": 0,
+    "output_tokens": 503,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-16T03:49:06+00:00",
+    "label": "geo_verifier:Shopify:Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 18984,
+    "cached_input_tokens": 0,
+    "output_tokens": 530,
+    "web_searches": 6
   }
 ]

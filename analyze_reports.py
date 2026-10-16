@@ -13,15 +13,14 @@ from backend.report_analyst import analyze_report
 REPORTS = Path(__file__).resolve().parent / "data" / "reports"
 
 
-def print_table(rows: list[tuple]) -> None:
-    headers = ("Report", "Company", "Type", "Function", "Location", "Page")
+def print_table(rows: list[tuple], headers=("Report", "Company", "Type", "Function", "Location", "Page")) -> None:
     widths = [max(len(str(x)) for x in col) for col in zip(headers, *rows)]
     line = lambda r: "  ".join(str(x).ljust(w) for x, w in zip(r, widths))
     print(line(headers))
     print("  ".join("-" * w for w in widths))
     for r in rows:
         print(line(r))
-    print(f"\n{len(rows)} employers")
+    print(f"\n{len(rows)} rows")
 
 
 async def main(force: bool) -> None:
