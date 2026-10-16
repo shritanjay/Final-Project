@@ -1,0 +1,5 @@
+# MGT 409 final project: MBA employer finder backend
+pydantic-ai-slim[openai]>=1.0
+fastapi
+uvicorn[standard]
+python-dotenv

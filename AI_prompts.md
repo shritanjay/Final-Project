@@ -1,0 +1,14 @@
+# AI Prompts Log
+
+## 1. Project setup
+I'm building my MGT 409 final project: an app that helps MBA students who want to work in Canada (and later other countries) find which companies to apply to. It reads MBA employment reports, pulls out employers, ranks them, and tracks their career pages.
+
+Set up the project in this folder:
+- Python backend with FastAPI and PydanticAI. React frontend later, not yet.
+- Create a venv, requirements.txt, .gitignore (ignore .env and venv), README.md, and .env.example listing PORTKEY_API_KEY.
+- Load .env from this folder first, then from the folder ONE LEVEL ABOVE it. The teaching staff's .env will sit one level up.
+- Use only the model gpt-6-luna through Portkey. Copy how I connected to Portkey in my Homework 6 folder: [paste path to your HW6 folder].
+- Log input, cached input, and output tokens for every model call to logs/usage_log.json. I need real token counts for my report.
+- Set up git, but don't push yet.
+
+When done, run a one-line test call to the model so I can see it works.

@@ -1,0 +1,11 @@
+[
+  {
+    "time": "2026-10-16T03:43:00+00:00",
+    "label": "smoke_test",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 16,
+    "cached_input_tokens": 0,
+    "output_tokens": 34
+  }
+]

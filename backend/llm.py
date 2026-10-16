@@ -1,0 +1,52 @@
+"""Portkey-backed model + token usage logging. Every model call goes through run_logged()."""
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
+from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
+
+ROOT = Path(__file__).resolve().parent.parent
+USAGE_LOG = ROOT / "logs" / "usage_log.json"
+
+load_dotenv(ROOT / ".env")         # project .env first
+load_dotenv(ROOT.parent / ".env")  # then one level up (teaching staff); won't override
+
+MODEL_NAME = "gpt-6-luna"  # the only model this project uses
+PORTKEY_BASE_URL = "https://api.portkey.ai/v1"
+
+
+def model() -> OpenAIChatModel:
+    key = os.getenv("PORTKEY_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("PORTKEY_API_KEY is not set (put it in .env here or one folder up).")
+    client = AsyncOpenAI(api_key=key, base_url=PORTKEY_BASE_URL, default_headers={"x-portkey-api-key": key})
+    return OpenAIChatModel(MODEL_NAME, provider=OpenAIProvider(openai_client=client))
+
+
+def log_usage(label: str, usage) -> dict:
+    """Append one entry with real token counts from the API response to logs/usage_log.json."""
+    entry = {
+        "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "label": label,
+        "model": MODEL_NAME,
+        "requests": usage.requests,
+        "input_tokens": usage.input_tokens,
+        "cached_input_tokens": usage.cache_read_tokens,
+        "output_tokens": usage.output_tokens,
+    }
+    USAGE_LOG.parent.mkdir(exist_ok=True)
+    log = json.loads(USAGE_LOG.read_text()) if USAGE_LOG.exists() else []
+    log.append(entry)
+    USAGE_LOG.write_text(json.dumps(log, indent=2))
+    return entry
+
+
+async def run_logged(agent: Agent, prompt: str, label: str, **kwargs):
+    result = await agent.run(prompt, **kwargs)
+    log_usage(label, result.usage)
+    return result
