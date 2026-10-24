@@ -47,3 +47,13 @@ Drop employment report PDFs in `data/reports/` and run `python analyze_reports.p
   (URLs must be real URLs; yes/no needs an evidence URL; "yes" evidence must mention the country, else "unsure").
 - Cached: a company checked for the same country in the last 7 days is skipped. Max 50 companies per run.
 - Cost: ~19k input tokens and a few web searches per company (logged in `logs/usage_log.json`).
+
+## Boss agent (Career Scout)
+Multi-agent pattern from Lecture 10: a boss agent talks to the student and delegates to specialists via tools.
+- Flow: asks for the target country → asks whether to **upload** report PDFs or have agents **find** them →
+  delegates to the Report Analyst (`analyze_reports`), Report Finder (`find_reports`, not built yet), and
+  Geo Verifier (`verify_employers`, confirms with the student first since it uses web search).
+- Code: `backend/boss.py`, prompt in `backend/prompts/boss.md`. Runs on the Responses API (needed for function tools).
+- API (`uvicorn backend.main:app --reload`):
+  - `POST /api/chat` `{session_id, message}` → `{answer, country, report_source}` (history kept per session in memory)
+  - `POST /api/upload` (multipart PDF, max 25 MB) → saved to `data/reports/`

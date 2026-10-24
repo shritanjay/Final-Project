@@ -46,5 +46,45 @@
     "cached_input_tokens": 0,
     "output_tokens": 530,
     "web_searches": 6
+  },
+  {
+    "time": "2026-10-24T15:03:59+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 596,
+    "cached_input_tokens": 0,
+    "output_tokens": 32,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-24T15:04:02+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 1305,
+    "cached_input_tokens": 0,
+    "output_tokens": 66,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-24T15:04:06+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 3,
+    "input_tokens": 2285,
+    "cached_input_tokens": 0,
+    "output_tokens": 64,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-24T15:04:10+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 3,
+    "input_tokens": 2723,
+    "cached_input_tokens": 0,
+    "output_tokens": 132,
+    "web_searches": 0
   }
 ]

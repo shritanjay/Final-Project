@@ -34,3 +34,13 @@ Find Rotman's latest MBA employment report on the official Rotman website, tell 
 
 ## 5. Rotman report decision
 Don't download anything. I'll request the current Full-Time MBA report from Rotman and drop it in data/reports/ myself.
+
+## 6. Multi-agent backend (context)
+We're building the multi-agent backend for my final project, same pattern as the Lecture 10 Harry Potter app: a boss agent delegates to specialist agents.
+
+Already built, don't rewrite unless I ask:
+- Report Analyst: reads employment report PDFs in data/reports/ and saves employers to the SQLite database
+- .env loading (this folder, then the parent folder) and token logging
+
+## 7. Boss agent flow
+Boss agent asks the end user which country they want to research on. The boss would then ask the end user if they would like to upload a PDF they can of the top MBA programs employment reports. Or alternatively, ask the pydantic ai agent do it all. the boss will then delegate this to other agents. I will tell you more about that in a bit

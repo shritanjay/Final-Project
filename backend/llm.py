@@ -47,7 +47,7 @@ def log_usage(label: str, usage) -> dict:
         "input_tokens": usage.input_tokens,
         "cached_input_tokens": usage.cache_read_tokens,
         "output_tokens": usage.output_tokens,
-        "web_searches": usage.web_searches,
+        "web_searches": getattr(usage, "web_searches", 0),
     }
     USAGE_LOG.parent.mkdir(exist_ok=True)
     log = json.loads(USAGE_LOG.read_text()) if USAGE_LOG.exists() else []
