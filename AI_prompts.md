@@ -80,3 +80,6 @@ is it possible to have a database conencted that has a basic user/ and sign up p
 
 ## 19. Chat history, email, earthy frontend
 lets do chat history. and email service. lets do all this you said. And lets also work to build a good design that wraps it nicely. We need to have a more cream/beige/earthy look and feel to the website with this whole thing connected
+
+## 20. Home page copy
+Home page - > Change it to -> Doing an MBA and wanting to work and live somewhere else? We will help you look for companies etc. like the way you wrote it. See if you can edit to somwhat like that but written better.

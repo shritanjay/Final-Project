@@ -77,7 +77,7 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(180, 100, 60
 /* Auth */
 .auth-shell { min-height: 100%; display: grid; grid-template-columns: 1.1fr 1fr; }
 .auth-story { padding: 56px 64px; display: flex; flex-direction: column; gap: 26px; justify-content: center; border-right: 1px solid var(--sand); background: linear-gradient(160deg, #efe4d2, #f4ece0 55%, #ebdfcb); }
-.auth-story h1 { font-size: 44px; line-height: 1.1; max-width: 15ch; }
+.auth-story h1 { font-size: 44px; line-height: 1.1; max-width: 17ch; text-wrap: balance; }
 .auth-story p { font-size: 17px; color: var(--bark); max-width: 46ch; margin: 0; }
 .auth-steps { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 12px; }
 .auth-steps li { display: flex; align-items: center; gap: 14px; color: var(--bark); }

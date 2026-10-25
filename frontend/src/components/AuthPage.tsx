@@ -43,11 +43,12 @@ export default function AuthPage({ onAuthed }: { onAuthed: () => void }) {
       <section className="auth-story">
         <Brand />
         <h1>
-          Find the companies that <em>actually hire</em> MBAs where you want to live.
+          Doing an MBA and dreaming of a career <em>somewhere new?</em>
         </h1>
         <p>
-          Career Scout reads the employment reports of the top MBA programs in your city, groups employers by
-          industry, researches pay and roles, and watches careers pages for internships and MBA openings.
+          Tell us where you want to live and work. We'll find the companies that actually hire MBAs there, straight
+          from the employment reports of that city's top business schools, then help you research them, shortlist
+          the best fits, and keep an eye out for internships and MBA roles.
         </p>
         <ol className="auth-steps">
           <li><span>01</span>Pick a country and city</li>
