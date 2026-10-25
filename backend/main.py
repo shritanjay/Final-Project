@@ -47,3 +47,10 @@ async def upload(file: UploadFile):
 def tracker(session_id: str):
     cols = ("company", "status", "careers_url", "notes", "updated")
     return [dict(zip(cols, r)) for r in db.tracker_rows(db.connect(), session_id)]
+
+
+@app.get("/api/postings/{session_id}")
+def postings(session_id: str, location: str):
+    """location = the searched "City, Country" (or just "Country")."""
+    cols = ("company", "title", "location", "level", "url", "first_seen")
+    return [dict(zip(cols, r)) for r in db.postings_for_student(db.connect(), session_id, location)]

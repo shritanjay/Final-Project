@@ -103,3 +103,13 @@ Groups employers from the analyzed reports of the city's top 3 MBA programs into
   full-time annual rows (by-industry preferred) from each school's report. The note cites school, row label and page,
   and says it's an industry average, not company-specific. Web search is skipped for salary when a report figure exists
   and used only as a fallback (e.g. companies tagged "other", like law firms).
+
+## Job Posting Scout
+For every company on the student's tracker (10–15), finds the careers page and current **internship / MBA /
+early-career** postings in the city (or country) — boss tools `check_job_postings` and `view_job_postings`.
+- Web search per company (≈ 15–20k input tokens, 4 at a time). Companies checked in the last 24h are skipped
+  unless `force=True`.
+- Code keeps only postings with a link that resolves (free HTTP check; 403/429 from bot-blocking job sites count as live).
+- Postings are stored in `job_postings` with first/last seen; postings missing from a new scan are marked inactive, and
+  each check reports how many are **new**. Careers URLs found are saved to the tracker.
+- `GET /api/postings/{session_id}?location=Toronto, Canada` for the frontend.

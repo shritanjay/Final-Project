@@ -109,3 +109,17 @@ class SalaryRow(BaseModel):
 
 class SalaryTable(BaseModel):
     rows: list[SalaryRow]
+
+
+class JobPosting(BaseModel):
+    title: str = Field(description="Job title exactly as posted")
+    location: str = Field(description="Location as posted, e.g. 'Toronto, ON'")
+    level: Literal["internship", "mba", "early-career"] = Field(description="internship/co-op; MBA-specific (e.g. 'MBA Associate'); or early-career/new-grad/associate program")
+    url: str = Field(description="Direct link to the posting")
+    posted: str | None = Field(None, description="Posted date if shown")
+
+
+class PostingScan(BaseModel):
+    careers_url: str | None = Field(None, description="Official careers / job search page")
+    postings: list[JobPosting] = Field(default_factory=list)
+    note: str | None = Field(None, description="e.g. 'no matching roles in Toronto right now', 'MBA recruiting opens in August'")

@@ -3,7 +3,8 @@
 Specialists: Report Analyst (PDF -> employers), Geo Verifier (does a company hire in the country?),
 Program Scout (top MBA programs via QS rankings), MBA Employment Report Finder (finds + downloads report PDFs),
 Report Summarizer (groups employers into industries, max 100), Company Researcher (salary, roles,
-locations, visa, recruiting; ranks by salary or fit). Students keep a tracker of 10-15 companies.. Conversation state lives per session in memory.
+locations, visa, recruiting; ranks by salary or fit). Students keep a tracker of 10-15 companies;
+Job Posting Scout checks their careers pages for intern / MBA / early-career postings in the city.. Conversation state lives per session in memory.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -22,6 +23,7 @@ from backend.report_analyst import analyze_report
 from backend.report_summarizer import norm, summarize
 from backend.company_researcher import MAX_PER_RUN as MAX_RESEARCH, apply_report_salary, fit_scores, rank_by_salary, report_salary, research_many
 from backend.salary_extractor import scan_reports
+from backend.job_scout import scan_many
 from backend.models import CompanyResearch
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -331,3 +333,51 @@ def update_tracker(ctx: RunContext[Session], company: str,
     if remove:
         return "Removed." if db.tracker_remove(conn, ctx.deps.id, company) else f"{company} isn't in the tracker."
     return "Updated." if db.tracker_update(conn, ctx.deps.id, company, status, notes) else f"{company} isn't in the tracker."
+
+
+def _location_key(s: Session) -> str:
+    return f"{s.city + ', ' if s.city else ''}{s.country}"
+
+
+@boss.tool
+async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> str:
+    """Delegate to the Job Posting Scout: for every company on the student's tracker, find the careers page and
+    current intern / MBA / early-career postings in the session's city (or country). Web search ~17k tokens per
+    company; companies checked in the last 24h are skipped unless force=True. Saves careers URLs to the tracker."""
+    s = ctx.deps
+    if not s.country:
+        return "No country set yet."
+    conn = db.connect()
+    tracked = db.tracker_rows(conn, s.id)
+    if not tracked:
+        return "Tracker is empty. Ask the student to pick 10-15 companies first."
+    key = _location_key(s)
+    todo = [(c, None if url == "-" else url) for c, _, url, _, _ in tracked
+            if force or not db.recently_scanned(conn, c, key)]
+    scans, errors = await scan_many(todo, s.country, s.city)
+    new_total = 0
+    for company, scan in scans.items():
+        new_total += db.save_posting_scan(conn, company, key, scan)
+        if scan.careers_url:
+            db.set_tracker_careers_url(conn, s.id, company, scan.careers_url)
+    return (f"Checked {len(scans)} companies ({len(tracked) - len(todo)} checked in last 24h, skipped); "
+            f"{new_total} new postings.\n" + _postings_report(conn, s) + (f"\nFailed: {', '.join(errors)}" if errors else ""))
+
+
+def _postings_report(conn, s: Session) -> str:
+    key = _location_key(s)
+    postings = db.postings_for_student(conn, s.id, key)
+    by_company: dict[str, list] = {}
+    for company, title, loc, level, url, first in postings:
+        by_company.setdefault(company, []).append(f"  - [{level}] {title} ({loc}) {url} (first seen {first})")
+    lines = []
+    for company, careers, note, scanned in db.scan_notes(conn, s.id, key):
+        lines.append(f"**{company}**: careers page {careers or 'not found'}")
+        lines += by_company.get(company, [f"  - no matching postings. {note or ''}".rstrip()])
+    return "\n".join(lines) or "No companies checked yet."
+
+
+@boss.tool
+def view_job_postings(ctx: RunContext[Session]) -> str:
+    """Show saved careers pages and active postings for the tracked companies (no new search)."""
+    return _postings_report(db.connect(), ctx.deps)

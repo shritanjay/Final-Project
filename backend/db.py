@@ -2,7 +2,7 @@
 import sqlite3
 from pathlib import Path
 
-from backend.models import CompanyResearch, GeoCheck, SalaryTable, MBAProgram, ProgramList, ReportExtraction
+from backend.models import CompanyResearch, GeoCheck, PostingScan, SalaryTable, MBAProgram, ProgramList, ReportExtraction
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "employers.db"
 
@@ -73,6 +73,28 @@ CREATE TABLE IF NOT EXISTS salary_scans (
     report_id INTEGER PRIMARY KEY REFERENCES reports(id) ON DELETE CASCADE,
     scanned_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS job_postings (
+    id INTEGER PRIMARY KEY,
+    company TEXT NOT NULL,
+    location_key TEXT NOT NULL,  -- "city, country" searched
+    title TEXT NOT NULL,
+    location TEXT,
+    level TEXT NOT NULL,
+    url TEXT NOT NULL,
+    posted TEXT,
+    first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+    last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+    active INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (company, location_key, url)
+);
+CREATE TABLE IF NOT EXISTS posting_scans (
+    company TEXT NOT NULL,
+    location_key TEXT NOT NULL,
+    careers_url TEXT,
+    note TEXT,
+    scanned_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (company, location_key)
+);
 CREATE TABLE IF NOT EXISTS tracker (
     id INTEGER PRIMARY KEY,
     student TEXT NOT NULL,
@@ -89,6 +111,7 @@ CREATE TABLE IF NOT EXISTS tracker (
 PROGRAM_CACHE_DAYS = 30  # rankings change yearly
 RESEARCH_CACHE_DAYS = 30
 TRACKER_MAX = 15
+POSTING_CACHE_HOURS = 24
 TRACKER_STATUSES = ("interested", "applied", "interviewing", "offer", "rejected")
 
 CACHE_DAYS = 7
@@ -319,3 +342,57 @@ def report_salaries_for(conn: sqlite3.Connection, category: str) -> list[tuple]:
     for row in rows:
         best.setdefault(row[10], row)  # first (industry-based) row per report
     return list(best.values())
+
+
+def recently_scanned(conn: sqlite3.Connection, company: str, location_key: str) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM posting_scans WHERE company = ? AND location_key = ? AND scanned_at >= datetime('now', ?)",
+        (company, location_key, f"-{POSTING_CACHE_HOURS} hours"),
+    ).fetchone() is not None
+
+
+def save_posting_scan(conn: sqlite3.Connection, company: str, location_key: str, scan: PostingScan) -> int:
+    """Upsert postings; mark ones not seen this time inactive. Returns number of NEW postings."""
+    with conn:
+        before = {r[0] for r in conn.execute(
+            "SELECT url FROM job_postings WHERE company = ? AND location_key = ?", (company, location_key))}
+        conn.execute("UPDATE job_postings SET active = 0 WHERE company = ? AND location_key = ?", (company, location_key))
+        for p in scan.postings:
+            conn.execute(
+                """INSERT INTO job_postings (company, location_key, title, location, level, url, posted)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT (company, location_key, url) DO UPDATE SET title = excluded.title,
+                     location = excluded.location, level = excluded.level, posted = excluded.posted,
+                     last_seen = datetime('now'), active = 1""",
+                (company, location_key, p.title, p.location, p.level, p.url, p.posted),
+            )
+        conn.execute(
+            """INSERT INTO posting_scans (company, location_key, careers_url, note, scanned_at) VALUES (?, ?, ?, ?, datetime('now'))
+               ON CONFLICT (company, location_key) DO UPDATE SET careers_url = excluded.careers_url,
+                 note = excluded.note, scanned_at = excluded.scanned_at""",
+            (company, location_key, scan.careers_url, scan.note),
+        )
+    return len({p.url for p in scan.postings} - before)
+
+
+def set_tracker_careers_url(conn: sqlite3.Connection, student: str, company: str, url: str) -> None:
+    with conn:
+        conn.execute("UPDATE tracker SET careers_url = ? WHERE student = ? AND company = ?", (url, student, company))
+
+
+def postings_for_student(conn: sqlite3.Connection, student: str, location_key: str) -> list[tuple]:
+    """Active postings for the student's tracked companies: company, title, location, level, url, first_seen."""
+    return conn.execute(
+        """SELECT p.company, p.title, COALESCE(p.location, ''), p.level, p.url, date(p.first_seen)
+           FROM job_postings p JOIN tracker t ON t.company = p.company AND t.student = ?
+           WHERE p.location_key = ? AND p.active = 1 ORDER BY t.id, p.level, p.title""",
+        (student, location_key),
+    ).fetchall()
+
+
+def scan_notes(conn: sqlite3.Connection, student: str, location_key: str) -> list[tuple]:
+    return conn.execute(
+        """SELECT s.company, s.careers_url, s.note, s.scanned_at FROM posting_scans s
+           JOIN tracker t ON t.company = s.company AND t.student = ? WHERE s.location_key = ? ORDER BY t.id""",
+        (student, location_key),
+    ).fetchall()

@@ -65,3 +65,6 @@ the next agent will help students research about the companies and make a list. 
 
 ## 14. Report salaries as source
 Yes, use the salary-by-function tables in the analyzed employment reports as the salary source, with web search as a fallback.
+
+## 15. Job Posting Scout agent
+okay now we will do another agent. they should be able to get career websires, of the 10-15 companies that the student wants and you have made a tracker for. the agent should get the website of the career page and be able to search if they have a job posting in that location for any interns/mba students/or early careers.
