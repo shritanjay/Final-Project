@@ -71,3 +71,9 @@ okay now we will do another agent. they should be able to get career websires, o
 
 ## 16. Role filter + country-wide programs
 Yes: ask the student which role types they want (e.g. strategy, product, finance), pass that to the Job Posting Scout, and also include country-wide MBA programs like Amazon Pathways, marked as 'location matched after hire'.
+
+## 17. Tracker size comment
+okay but they might not take more than 5-10 comps so should be fine.
+
+## 18. User accounts
+is it possible to have a database conencted that has a basic user/ and sign up part. So that the tracker is saved. I.e., the user should be able to log in and then just run the search for those specific companies already identified.

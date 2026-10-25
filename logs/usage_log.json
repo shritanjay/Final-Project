@@ -486,5 +486,15 @@
     "cached_input_tokens": 4019,
     "output_tokens": 378,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:29:56+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 1886,
+    "cached_input_tokens": 0,
+    "output_tokens": 87,
+    "web_searches": 0
   }
 ]

@@ -1,4 +1,5 @@
-"""SQLite storage for extracted employers (data/employers.db)."""
+"""SQLite storage (data/employers.db): reports, employers, research, users, trackers, postings."""
+import json
 import sqlite3
 from pathlib import Path
 
@@ -94,6 +95,24 @@ CREATE TABLE IF NOT EXISTS posting_scans (
     note TEXT,
     scanned_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (company, location_key)
+);
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS auth_tokens (
+    token_hash TEXT PRIMARY KEY,  -- sha256 of the token; the raw token is never stored
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS user_prefs (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    country TEXT,
+    city TEXT,
+    target_roles TEXT NOT NULL DEFAULT '[]',  -- JSON list
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS tracker (
     id INTEGER PRIMARY KEY,
@@ -410,3 +429,18 @@ def scan_notes(conn: sqlite3.Connection, student: str, location_key: str) -> lis
            JOIN tracker t ON t.company = s.company AND t.student = ? WHERE s.location_key = ? ORDER BY t.id""",
         (student, location_key),
     ).fetchall()
+
+
+def get_prefs(conn: sqlite3.Connection, user_id: int) -> tuple[str | None, str | None, list[str]]:
+    row = conn.execute("SELECT country, city, target_roles FROM user_prefs WHERE user_id = ?", (user_id,)).fetchone()
+    return (row[0], row[1], json.loads(row[2])) if row else (None, None, [])
+
+
+def save_prefs(conn: sqlite3.Connection, user_id: int, country: str | None, city: str | None, roles: list[str]) -> None:
+    with conn:
+        conn.execute(
+            """INSERT INTO user_prefs (user_id, country, city, target_roles, updated_at) VALUES (?, ?, ?, ?, datetime('now'))
+               ON CONFLICT (user_id) DO UPDATE SET country = excluded.country, city = excluded.city,
+                 target_roles = excluded.target_roles, updated_at = excluded.updated_at""",
+            (user_id, country, city, json.dumps(roles)),
+        )

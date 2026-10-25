@@ -55,8 +55,8 @@ Multi-agent pattern from Lecture 10: a boss agent talks to the student and deleg
   Geo Verifier (`verify_employers`, confirms with the student first since it uses web search).
 - Code: `backend/boss.py`, prompt in `backend/prompts/boss.md`. Runs on the Responses API (needed for function tools).
 - API (`uvicorn backend.main:app --reload`):
-  - `POST /api/chat` `{session_id, message}` → `{answer, country, report_source}` (history kept per session in memory)
-  - `POST /api/upload` (multipart PDF, max 25 MB) → saved to `data/reports/`
+  - `POST /api/chat` `{message}` → `{answer, country, report_source}` (login required; chat history kept in memory per user)
+  - `POST /api/upload` (multipart PDF, max 25 MB, login required) → saved to `data/reports/`
 
 ## Program Scout
 Finds the top full-time MBA programs in the country/city using the QS MBA rankings
@@ -91,7 +91,7 @@ Groups employers from the analyzed reports of the city's top 3 MBA programs into
 - `rank_companies`: by salary (code) or by fit to the student's priorities (one small model call, no web search).
 - Tracker (`tracker` table, per session): student picks 10–15 companies (max 15); status
   interested/applied/interviewing/offer/rejected + notes. `add_to_tracker`, `view_tracker`, `update_tracker`;
-  `GET /api/tracker/{session_id}` for the frontend.
+  `GET /api/tracker` (login required) for the frontend.
 
 ## Salaries from employment reports
 - **Salary Extractor** (`backend/salary_extractor.py`): after reports are analyzed, sends only the pages that look
@@ -116,4 +116,15 @@ early-career** postings in the city (or country) — boss tools `check_job_posti
 - Code keeps only postings with a link that resolves (free HTTP check; 403/429 from bot-blocking job sites count as live).
 - Postings are stored in `job_postings` with first/last seen; postings missing from a new scan are marked inactive, and
   each check reports how many are **new**. Careers URLs found are saved to the tracker.
-- `GET /api/postings/{session_id}?location=Toronto, Canada` for the frontend.
+- `GET /api/postings` (login required) for the frontend: postings for the user's tracked companies in their saved location.
+
+## Accounts (sign up / log in)
+Students have accounts, so their tracker and settings are saved between visits (`backend/auth.py`, SQLite tables
+`users`, `auth_tokens`, `user_prefs`).
+- `POST /api/signup` `{email, password}` → `{token}` (password ≥ 8 chars); `POST /api/login` → `{token}`;
+  `POST /api/logout`; `GET /api/me` → email + saved country, city, target roles.
+- Send the token as `Authorization: Bearer <token>`. All chat/upload/tracker/postings endpoints require it.
+- Passwords: scrypt with a per-user salt (standard library). Tokens: random, stored only as SHA-256 hashes,
+  valid 30 days, deleted on logout.
+- Saved per user: country, city, target roles, tracker, postings. A returning student is greeted with their
+  tracked companies and offered a new posting check right away. (Chat history itself is in memory only.)

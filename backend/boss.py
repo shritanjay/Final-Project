@@ -51,7 +51,9 @@ boss = Agent(deps_type=Session, output_type=str, instructions=(Path(__file__).pa
 @boss.instructions
 def _state(ctx: RunContext[Session]) -> str:
     s = ctx.deps
-    return (f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, "
+    tracked = [r[0] for r in db.tracker_rows(db.connect(), s.id)]
+    return (f"Saved tracker: {', '.join(tracked) or 'empty'}.\n"
+            f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, "
             f"report_source={s.report_source or 'not chosen'}, target_roles={', '.join(s.target_roles) or 'not set'}.")
 
 
@@ -202,13 +204,28 @@ async def verify_employers(ctx: RunContext[Session], limit: int = 10) -> str:
             f"Companies confirmed hiring in {ctx.deps.country}: {', '.join(yes) or 'none yet'}.")
 
 
-async def chat(session_id: str, message: str) -> tuple[Session, str]:
-    session = SESSIONS.setdefault(session_id, Session(id=session_id))
+def _load_session(user_id: int) -> Session:
+    """In-memory chat state per user; country, city and target roles come from the database on first use."""
+    key = f"user:{user_id}"
+    if key not in SESSIONS:
+        country, city, roles = db.get_prefs(db.connect(), user_id)
+        SESSIONS[key] = Session(id=key, country=country, city=city, target_roles=roles)
+    return SESSIONS[key]
+
+
+async def chat(user_id: int, message: str) -> tuple[Session, str]:
+    session = _load_session(user_id)
     result = await run_logged(
         boss, message, "boss", model=responses_model(), deps=session, message_history=session.history
     )
     session.history = result.all_messages()
+    db.save_prefs(db.connect(), user_id, session.country, session.city, session.target_roles)
     return session, result.output
+
+
+def reset_chat(user_id: int) -> None:
+    """Forget the in-memory conversation (on logout). Saved prefs, tracker and postings stay."""
+    SESSIONS.pop(f"user:{user_id}", None)
 
 
 @boss.tool
