@@ -1,7 +1,8 @@
 """Boss agent (Career Scout): owns the chat with the student and delegates to specialist agents.
 
 Specialists: Report Analyst (PDF -> employers), Geo Verifier (does a company hire in the country?),
-Program Scout (top MBA programs via QS rankings), Report Finder (finds + downloads report PDFs). Conversation state lives per session in memory.
+Program Scout (top MBA programs via QS rankings), MBA Employment Report Finder (finds + downloads report PDFs),
+Report Summarizer (groups employers into industries, max 100). Conversation state lives per session in memory.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,8 +16,9 @@ from backend.geo_verifier import verify
 from backend.models import ReportLinks
 from backend.llm import responses_model, run_logged
 from backend.program_scout import find_programs
-from backend.report_finder import check_pdf, download_pdf, file_name, find_report_links
+from backend.employment_report_finder import check_pdf, download_pdf, file_name, find_report_links
 from backend.report_analyst import analyze_report
+from backend.report_summarizer import norm, summarize
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = ROOT / "data" / "reports"
@@ -111,7 +113,7 @@ async def research_programs(ctx: RunContext[Session], top_n: int = 10) -> str:
 
 @boss.tool
 async def find_reports(ctx: RunContext[Session], n: int = 3) -> str:
-    """Delegate to the Report Finder: find the latest employment report PDFs for the top n MBA programs in the
+    """Delegate to the MBA Employment Report Finder: find the latest employment report PDFs for the top n MBA programs in the
     session's city (from research_programs). Does NOT download; returns links with file sizes for the student
     to approve, then call download_reports."""
     s = ctx.deps
@@ -196,3 +198,26 @@ async def chat(session_id: str, message: str) -> tuple[Session, str]:
     )
     session.history = result.all_messages()
     return session, result.output
+
+
+@boss.tool
+async def summarize_employers(ctx: RunContext[Session]) -> str:
+    """Delegate to the Report Summarizer: group employers from the analyzed reports of the top 3 MBA programs in
+    the session's city into industries (max 100 companies). Call after analyze_reports."""
+    s = ctx.deps
+    conn = db.connect()
+    schools = db.top_programs_in_city(conn, s.country, s.city, 3) if s.country else []
+    files = db.reports_for_schools(conn, schools) if schools else []
+    if not files:  # e.g. student uploaded reports without running research_programs
+        files = [r[0] for r in conn.execute("SELECT file FROM reports")]
+    if not files:
+        return "No analyzed reports yet."
+    summary, cands = await summarize(conn, files, s.city or s.country or "the target location")
+    total = sum(len(g.companies) for g in summary.industries)
+    lines = [f"Reports used: {', '.join(files)}. {len(cands)} unique employers found; showing {total}.",
+             f"Overview: {summary.overview}"]
+    for g in summary.industries:
+        tagged = [f"{c}{' *' if len(cands[norm(c)]['schools']) > 1 else ''}" for c in g.companies]
+        lines.append(f"\n{g.industry} ({len(g.companies)}): " + ", ".join(tagged))
+    lines.append("\n(* = listed by more than one school)")
+    return "\n".join(lines)

@@ -216,5 +216,25 @@
     "cached_input_tokens": 0,
     "output_tokens": 15830,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T22:52:28+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 9776,
+    "cached_input_tokens": 0,
+    "output_tokens": 2630,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T22:52:33+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 5,
+    "input_tokens": 6062,
+    "cached_input_tokens": 2231,
+    "output_tokens": 863,
+    "web_searches": 0
   }
 ]

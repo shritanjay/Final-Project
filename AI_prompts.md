@@ -56,3 +56,6 @@ okay the next agent should be able to search for employment reports of the top 3
 
 ## 11. Download and analyze Rotman + Schulich
 Yes, download the Rotman 2026 and Schulich PDFs into data/reports/, then run the Report Analyst on them and show me the employer table.
+
+## 12. Rename + Report Summarizer agent
+okay so I want that Agent to be called the MBA employment report finder. The next agent will be the report summarizer. they basically find employers and put them in industry from the top 3 mbas of that city. it can have 100-200 and then present to the person. Or less too. but 100 would be the maxium

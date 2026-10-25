@@ -171,3 +171,17 @@ def known_report_url(conn: sqlite3.Connection, school: str) -> str | None:
         (school,),
     ).fetchone()
     return row[0] if row else None
+
+
+def reports_for_schools(conn: sqlite3.Connection, schools: list[str]) -> list[str]:
+    """Analyzed report files matching the given schools (by the school's distinctive first word in file/school name)."""
+    files = []
+    for school in schools:
+        key = school.split(",")[0].split()[0].lower()  # "Rotman School of Management, ..." -> "rotman"
+        row = conn.execute(
+            "SELECT file FROM reports WHERE lower(file) LIKE ? OR lower(COALESCE(school, '')) LIKE ? ORDER BY analyzed_at DESC",
+            (f"%{key}%", f"%{key}%"),
+        ).fetchone()
+        if row and row[0] not in files:
+            files.append(row[0])
+    return files

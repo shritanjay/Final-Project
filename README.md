@@ -66,10 +66,19 @@ Finds the top full-time MBA programs in the country/city using the QS MBA rankin
   only records a rank if it actually sees one.
 - Downloading the report PDFs isn't automated yet; the boss asks the student to download and upload them.
 
-## Report Finder
+## MBA Employment Report Finder
 Finds the latest full-time MBA employment report PDF for the top 3 programs in the student's city
 (order from Program Scout; schools in the city first).
 - First tries report links Program Scout already found (checked in code, no model call), then web-searches the rest.
 - Every link is checked in code: HTTPS, HTTP 200, file really starts with `%PDF`, under 25 MB.
 - **Nothing is downloaded until the student confirms** in chat (`find_reports` → student says yes → `download_reports`).
   Files are saved to `data/reports/` as `<school>_<year>.pdf`, then `analyze_reports` extracts employers.
+
+## Report Summarizer
+Groups employers from the analyzed reports of the city's top 3 MBA programs into industries and presents
+**at most 100 companies** to the student (boss tool `summarize_employers`).
+- Code picks the reports (matched to Program Scout's top 3; falls back to all analyzed reports), merges duplicate
+  names across schools ("Inc.", "LLP", "(CPPIB)" etc. ignored), and counts how many schools list each company.
+- The model groups them into 6–12 industries and picks the most useful (companies listed by more schools first).
+- Code then drops any name not in the reports and enforces the 100 cap. `*` = listed by more than one school.
+- One run for Rotman + Schulich (787 unique employers in) ≈ 9k input / 2.6k output tokens.

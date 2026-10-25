@@ -54,3 +54,13 @@ class ReportLink(BaseModel):
 
 class ReportLinks(BaseModel):
     reports: list[ReportLink]
+
+
+class IndustryGroup(BaseModel):
+    industry: str = Field(description="Industry name, e.g. 'Consulting', 'Banking & Investment Management', 'Technology'")
+    companies: list[str] = Field(description="Company names exactly as given in the input list")
+
+
+class EmployerSummary(BaseModel):
+    overview: str = Field(description="2-4 sentence overview of where these schools' MBAs get hired")
+    industries: list[IndustryGroup]

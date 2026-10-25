@@ -1,4 +1,4 @@
-"""Report Finder agent: finds the latest full-time MBA employment report PDF for given schools.
+"""MBA Employment Report Finder agent: finds the latest full-time MBA employment report PDF for given schools.
 
 Finding is done by the model (web search). Checking and downloading are done in plain code:
 links must be HTTPS and serve a real PDF under the size cap. Nothing is downloaded until the student confirms.
@@ -17,7 +17,7 @@ REPORTS = Path(__file__).resolve().parent.parent / "data" / "reports"
 MAX_MB = 25
 HEADERS = {"User-Agent": "Mozilla/5.0 (MBA employer research; student project)"}
 
-INSTRUCTIONS = """You are a Report Finder. For each business school given, find its most recent FULL-TIME MBA
+INSTRUCTIONS = """You are the MBA Employment Report Finder. For each business school given, find its most recent FULL-TIME MBA
 employment report (a.k.a. employment & salary report, career outcomes report) published by the school itself.
 
 - Prefer a direct PDF link on the school's official site (or the CMS/CDN host its site links to).
