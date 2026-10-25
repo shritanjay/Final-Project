@@ -8,17 +8,22 @@ from backend.llm import model, run_logged
 from backend.models import Employer, ReportExtraction
 from backend.pdf_reader import read_pages
 
-INSTRUCTIONS = """You are a Report Analyst. You read MBA employment reports and list the employers that hired graduates.
+INSTRUCTIONS = """You are a Report Analyst. You read MBA employment reports and list the employers in them.
 
 Rules:
+- Include every company named in the report's employer lists: "hiring organizations", "employers",
+  "companies recruiting at <school>", "where our graduates work", internship employer lists, and companies named in
+  quotes or profiles. Long alphabetical lists spanning several pages must be listed in full.
 - Only list companies that are actually named in the report text. Never add companies from your own knowledge.
 - Every employer needs the page number from the === PAGE n === marker above the text where it appears.
   If a company appears on several pages, use the first page.
 - role_type: "internship" if listed only under summer/internship hiring, "full-time" if only under
   full-time/graduate hiring, "both" if under both. If the report doesn't separate them, use "full-time".
-- function: pick the closest category from the function the report lists the company under; use "other" if unclear.
+- function: use the function the report lists the company under. If the report doesn't say (e.g. a plain
+  alphabetical list), pick the category that best fits what the company mainly does (McKinsey -> consulting,
+  RBC -> finance, Microsoft -> tech, Loblaw -> operations, hospitals -> healthcare). Use "other" only if unclear.
 - location: only if the report states it for that company (e.g. under a region heading). Otherwise null.
-- List each company once. Skip schools, government programs, and generic phrases like "various startups".
+- List each company once. Skip schools, generic phrases like "various startups", and section headings.
 """
 
 # NativeOutput = JSON-schema response format; gpt-6-luna on Portkey rejects tool-call output with reasoning on

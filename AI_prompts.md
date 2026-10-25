@@ -53,3 +53,6 @@ the agent will be able to do this with any country and city right?
 
 ## 10. Report Finder agent
 okay the next agent should be able to search for employment reports of the top 3 mbas in that city. lets look at that.
+
+## 11. Download and analyze Rotman + Schulich
+Yes, download the Rotman 2026 and Schulich PDFs into data/reports/, then run the Report Analyst on them and show me the employer table.

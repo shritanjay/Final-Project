@@ -176,5 +176,45 @@
     "cached_input_tokens": 1343,
     "output_tokens": 326,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T22:31:10+00:00",
+    "label": "report_analyst:rotman_school_of_management_2026.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 5240,
+    "cached_input_tokens": 0,
+    "output_tokens": 7826,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T22:31:19+00:00",
+    "label": "report_analyst:schulich_school_of_business_2024.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 7294,
+    "cached_input_tokens": 0,
+    "output_tokens": 1235,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T22:32:35+00:00",
+    "label": "report_analyst:rotman_school_of_management_2026.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 5350,
+    "cached_input_tokens": 0,
+    "output_tokens": 8104,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T22:33:42+00:00",
+    "label": "report_analyst:schulich_school_of_business_2024.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 7404,
+    "cached_input_tokens": 0,
+    "output_tokens": 15830,
+    "web_searches": 0
   }
 ]
