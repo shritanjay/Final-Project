@@ -83,3 +83,6 @@ lets do chat history. and email service. lets do all this you said. And lets als
 
 ## 20. Home page copy
 Home page - > Change it to -> Doing an MBA and wanting to work and live somewhere else? We will help you look for companies etc. like the way you wrote it. See if you can edit to somwhat like that but written better.
+
+## 21. City not asked
+why does it automatically say Toronto canada ? it doesnt ask me the city

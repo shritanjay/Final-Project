@@ -3,9 +3,9 @@ import ReactMarkdown from "react-markdown";
 import { api, ChatMsg } from "../api";
 
 const STARTERS = [
-  "I want to work in Toronto, Canada",
-  "Find the top MBA programs and their employment reports for me",
-  "Summarize the employers by industry",
+  "Help me find companies to apply to",
+  "How does Career Scout work?",
+  "I have employment reports to upload",
 ];
 const RETURNING = ["Check my tracked companies for new postings", "Show my tracker", "Research my tracked companies"];
 
