@@ -59,3 +59,6 @@ Yes, download the Rotman 2026 and Schulich PDFs into data/reports/, then run the
 
 ## 12. Rename + Report Summarizer agent
 okay so I want that Agent to be called the MBA employment report finder. The next agent will be the report summarizer. they basically find employers and put them in industry from the top 3 mbas of that city. it can have 100-200 and then present to the person. Or less too. but 100 would be the maxium
+
+## 13. Company Researcher + tracker
+the next agent will help students research about the companies and make a list. it should be able to research and rank for salary post MBA, types of roles they hire for and anything else that the student wants. this pydantic agent will help to do that and present to the MBA studnet using this. Is there anything else that could be done here? Maybe locations? And then the student should be able to pick 10-15 companies that you form as a tracker.

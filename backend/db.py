@@ -2,7 +2,7 @@
 import sqlite3
 from pathlib import Path
 
-from backend.models import GeoCheck, MBAProgram, ProgramList, ReportExtraction
+from backend.models import CompanyResearch, GeoCheck, MBAProgram, ProgramList, ReportExtraction
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "employers.db"
 
@@ -44,9 +44,32 @@ CREATE TABLE IF NOT EXISTS programs (
     employment_report_url TEXT,
     checked_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS company_research (
+    id INTEGER PRIMARY KEY,
+    company TEXT NOT NULL,
+    country TEXT NOT NULL,
+    question TEXT NOT NULL DEFAULT '',
+    data TEXT NOT NULL,  -- CompanyResearch JSON
+    checked_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (company, country, question)
+);
+CREATE TABLE IF NOT EXISTS tracker (
+    id INTEGER PRIMARY KEY,
+    student TEXT NOT NULL,
+    company TEXT NOT NULL,
+    careers_url TEXT,
+    status TEXT NOT NULL DEFAULT 'interested',
+    notes TEXT,
+    added_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (student, company)
+);
 """
 
 PROGRAM_CACHE_DAYS = 30  # rankings change yearly
+RESEARCH_CACHE_DAYS = 30
+TRACKER_MAX = 15
+TRACKER_STATUSES = ("interested", "applied", "interviewing", "offer", "rejected")
 
 CACHE_DAYS = 7
 
@@ -185,3 +208,51 @@ def reports_for_schools(conn: sqlite3.Connection, schools: list[str]) -> list[st
         if row and row[0] not in files:
             files.append(row[0])
     return files
+
+
+def cached_research(conn: sqlite3.Connection, company: str, country: str, question: str | None) -> CompanyResearch | None:
+    row = conn.execute(
+        "SELECT data FROM company_research WHERE company = ? AND country = ? AND question = ? AND checked_at >= datetime('now', ?)",
+        (company, country, question or "", f"-{RESEARCH_CACHE_DAYS} days"),
+    ).fetchone()
+    return CompanyResearch.model_validate_json(row[0]) if row else None
+
+
+def save_research(conn: sqlite3.Connection, country: str, question: str | None, r: CompanyResearch) -> None:
+    with conn:
+        conn.execute(
+            """INSERT INTO company_research (company, country, question, data, checked_at) VALUES (?, ?, ?, ?, datetime('now'))
+               ON CONFLICT (company, country, question) DO UPDATE SET data = excluded.data, checked_at = excluded.checked_at""",
+            (r.company, country, question or "", r.model_dump_json()),
+        )
+
+
+def tracker_rows(conn: sqlite3.Connection, student: str) -> list[tuple]:
+    return conn.execute(
+        "SELECT company, status, COALESCE(careers_url, '-'), COALESCE(notes, ''), date(updated_at) FROM tracker WHERE student = ? ORDER BY id",
+        (student,),
+    ).fetchall()
+
+
+def tracker_add(conn: sqlite3.Connection, student: str, company: str, careers_url: str | None) -> bool:
+    with conn:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO tracker (student, company, careers_url) VALUES (?, ?, ?)", (student, company, careers_url)
+        )
+    return cur.rowcount == 1
+
+
+def tracker_update(conn: sqlite3.Connection, student: str, company: str, status: str | None, notes: str | None) -> bool:
+    with conn:
+        cur = conn.execute(
+            """UPDATE tracker SET status = COALESCE(?, status), notes = COALESCE(?, notes), updated_at = datetime('now')
+               WHERE student = ? AND lower(company) = lower(?)""",
+            (status, notes, student, company),
+        )
+    return cur.rowcount == 1
+
+
+def tracker_remove(conn: sqlite3.Connection, student: str, company: str) -> bool:
+    with conn:
+        cur = conn.execute("DELETE FROM tracker WHERE student = ? AND lower(company) = lower(?)", (student, company))
+    return cur.rowcount == 1

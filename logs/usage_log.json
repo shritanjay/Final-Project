@@ -236,5 +236,85 @@
     "cached_input_tokens": 2231,
     "output_tokens": 863,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:03:26+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 3153,
+    "cached_input_tokens": 0,
+    "output_tokens": 305,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:03:41+00:00",
+    "label": "company_researcher:Scotiabank",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 16237,
+    "cached_input_tokens": 4813,
+    "output_tokens": 1175,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-25T23:03:45+00:00",
+    "label": "company_researcher:McKinsey & Company",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 16794,
+    "cached_input_tokens": 4813,
+    "output_tokens": 992,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-25T23:03:46+00:00",
+    "label": "company_researcher:Amazon",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 17441,
+    "cached_input_tokens": 0,
+    "output_tokens": 1214,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-25T23:03:50+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4562,
+    "cached_input_tokens": 3505,
+    "output_tokens": 540,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:03:55+00:00",
+    "label": "company_ranker",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 1064,
+    "cached_input_tokens": 0,
+    "output_tokens": 322,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:03:59+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 6575,
+    "cached_input_tokens": 5911,
+    "output_tokens": 258,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:04:06+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 4,
+    "input_tokens": 14920,
+    "cached_input_tokens": 14411,
+    "output_tokens": 185,
+    "web_searches": 0
   }
 ]

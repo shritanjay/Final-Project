@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from backend import boss
+from backend import boss, db
 
 app = FastAPI(title="MBA Employer Finder")
 MAX_UPLOAD_MB = 25
@@ -41,3 +41,9 @@ async def upload(file: UploadFile):
     boss.REPORTS.mkdir(parents=True, exist_ok=True)
     (boss.REPORTS / name).write_bytes(data)
     return {"saved": name}
+
+
+@app.get("/api/tracker/{session_id}")
+def tracker(session_id: str):
+    cols = ("company", "status", "careers_url", "notes", "updated")
+    return [dict(zip(cols, r)) for r in db.tracker_rows(db.connect(), session_id)]

@@ -2,7 +2,8 @@
 
 Specialists: Report Analyst (PDF -> employers), Geo Verifier (does a company hire in the country?),
 Program Scout (top MBA programs via QS rankings), MBA Employment Report Finder (finds + downloads report PDFs),
-Report Summarizer (groups employers into industries, max 100). Conversation state lives per session in memory.
+Report Summarizer (groups employers into industries, max 100), Company Researcher (salary, roles,
+locations, visa, recruiting; ranks by salary or fit). Students keep a tracker of 10-15 companies.. Conversation state lives per session in memory.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +20,8 @@ from backend.program_scout import find_programs
 from backend.employment_report_finder import check_pdf, download_pdf, file_name, find_report_links
 from backend.report_analyst import analyze_report
 from backend.report_summarizer import norm, summarize
+from backend.company_researcher import MAX_PER_RUN as MAX_RESEARCH, fit_scores, rank_by_salary, research_many
+from backend.models import CompanyResearch
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = ROOT / "data" / "reports"
@@ -27,11 +30,13 @@ MAX_VERIFY = 50
 
 @dataclass
 class Session:
+    id: str = ""
     country: str | None = None
     city: str | None = None
     report_source: Literal["upload", "auto"] | None = None
     history: list[ModelMessage] = field(default_factory=list)
     pending_downloads: list[tuple[str, str]] = field(default_factory=list)  # (url, file name) awaiting OK
+    research: dict[str, CompanyResearch] = field(default_factory=dict)  # last researched companies
 
 
 SESSIONS: dict[str, Session] = {}
@@ -192,7 +197,7 @@ async def verify_employers(ctx: RunContext[Session], limit: int = 10) -> str:
 
 
 async def chat(session_id: str, message: str) -> tuple[Session, str]:
-    session = SESSIONS.setdefault(session_id, Session())
+    session = SESSIONS.setdefault(session_id, Session(id=session_id))
     result = await run_logged(
         boss, message, "boss", model=responses_model(), deps=session, message_history=session.history
     )
@@ -221,3 +226,101 @@ async def summarize_employers(ctx: RunContext[Session]) -> str:
         lines.append(f"\n{g.industry} ({len(g.companies)}): " + ", ".join(tagged))
     lines.append("\n(* = listed by more than one school)")
     return "\n".join(lines)
+
+
+def _fmt_research(r: CompanyResearch) -> str:
+    sal = (f"{r.salary_base_low or '?'}-{r.salary_base_high or '?'} {r.salary_currency or ''}".strip()
+           if r.salary_base_low or r.salary_base_high else "salary n/a")
+    parts = [f"**{r.company}**: {sal}" + (f" ({r.salary_note})" if r.salary_note else ""),
+             f"roles: {', '.join(r.mba_roles) or 'n/a'}", f"locations: {', '.join(r.locations) or 'n/a'}",
+             f"visa: {r.visa_sponsorship}"]
+    if r.recruiting_notes:
+        parts.append(f"recruiting: {r.recruiting_notes}")
+    if r.custom_answer:
+        parts.append(f"answer: {r.custom_answer}")
+    parts.append(f"careers: {r.careers_url or 'n/a'}")
+    return " | ".join(parts)
+
+
+@boss.tool
+async def research_companies(ctx: RunContext[Session], companies: list[str], question: str | None = None) -> str:
+    """Delegate to the Company Researcher: post-MBA salary, MBA roles, office locations, visa sponsorship and
+    recruiting timeline for each company (max 20 per run; web search ~20k tokens per company, cached 30 days).
+    `question` = an extra thing the student wants to know about every company (optional).
+    Confirm the list with the student first if it's more than 5 new companies."""
+    s = ctx.deps
+    if not s.country:
+        return "No country set yet."
+    conn = db.connect()
+    companies = list(dict.fromkeys(companies))[:MAX_RESEARCH]
+    todo = []
+    for c in companies:
+        if (hit := db.cached_research(conn, c, s.country, question)):
+            s.research[c] = hit
+        else:
+            todo.append(c)
+    results, errors = await research_many(todo, s.country, s.city, question)
+    for r in results:
+        db.save_research(conn, s.country, question, r)
+        s.research[r.company] = r
+    lines = [_fmt_research(s.research[c]) for c in companies if c in s.research]
+    head = f"Researched {len(results)} new, {len(companies) - len(todo)} cached."
+    return head + "\n" + "\n".join(lines) + (f"\nFailed: {', '.join(errors)}" if errors else "")
+
+
+@boss.tool
+async def rank_companies(ctx: RunContext[Session], by: Literal["salary", "fit"] = "fit", priorities: str | None = None) -> str:
+    """Rank the companies researched in this session. by="salary" (highest base midpoint first) or
+    by="fit" (needs `priorities`, e.g. "consulting roles, Toronto, visa sponsorship, high pay")."""
+    rows = list(ctx.deps.research.values())
+    if not rows:
+        return "Nothing researched yet. Call research_companies first."
+    if by == "salary":
+        return "\n".join(f"{i}. {_fmt_research(r)}" for i, r in enumerate(rank_by_salary(rows), 1))
+    if not priorities:
+        return "Ask the student what matters most to them (roles, pay, location, visa, etc.) first."
+    scores = await fit_scores(rows, priorities)
+    ranked = sorted(rows, key=lambda r: -scores.get(r.company, (0, ""))[0])
+    return "\n".join(f"{i}. {r.company}: {scores.get(r.company, (0, 'not scored'))[0]}/10, "
+                     f"{scores.get(r.company, (0, 'not scored'))[1]}" for i, r in enumerate(ranked, 1))
+
+
+@boss.tool
+def add_to_tracker(ctx: RunContext[Session], companies: list[str]) -> str:
+    """Add companies the student picked to their application tracker (10-15 companies recommended, max 15)."""
+    s = ctx.deps
+    conn = db.connect()
+    have = len(db.tracker_rows(conn, s.id))
+    added, skipped = [], []
+    for c in companies:
+        if have >= db.TRACKER_MAX:
+            skipped.append(c)
+            continue
+        url = s.research[c].careers_url if c in s.research else None
+        if db.tracker_add(conn, s.id, c, url):
+            added.append(c)
+            have += 1
+    msg = f"Added {len(added)}: {', '.join(added) or 'none'}. Tracker has {have}/{db.TRACKER_MAX}."
+    if skipped:
+        msg += f" Not added (tracker full): {', '.join(skipped)}."
+    if have < 10:
+        msg += f" Suggest picking {10 - have} more (10-15 recommended)."
+    return msg
+
+
+@boss.tool
+def view_tracker(ctx: RunContext[Session]) -> str:
+    """Show the student's tracker: company, status, careers URL, notes, last updated."""
+    rows = db.tracker_rows(db.connect(), ctx.deps.id)
+    return "\n".join(f"- {c} [{st}] {url} {n} (updated {d})" for c, st, url, n, d in rows) or "Tracker is empty."
+
+
+@boss.tool
+def update_tracker(ctx: RunContext[Session], company: str,
+                   status: Literal["interested", "applied", "interviewing", "offer", "rejected"] | None = None,
+                   notes: str | None = None, remove: bool = False) -> str:
+    """Update a tracked company's status and/or notes, or remove it (remove=True)."""
+    conn = db.connect()
+    if remove:
+        return "Removed." if db.tracker_remove(conn, ctx.deps.id, company) else f"{company} isn't in the tracker."
+    return "Updated." if db.tracker_update(conn, ctx.deps.id, company, status, notes) else f"{company} isn't in the tracker."

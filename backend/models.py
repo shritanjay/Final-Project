@@ -64,3 +64,29 @@ class IndustryGroup(BaseModel):
 class EmployerSummary(BaseModel):
     overview: str = Field(description="2-4 sentence overview of where these schools' MBAs get hired")
     industries: list[IndustryGroup]
+
+
+class CompanyResearch(BaseModel):
+    company: str
+    careers_url: str | None = Field(None, description="Official careers page URL")
+    salary_base_low: int | None = Field(None, description="Low end of typical post-MBA base salary (annual, local currency)")
+    salary_base_high: int | None = Field(None, description="High end of typical post-MBA base salary")
+    salary_currency: str | None = Field(None, description="e.g. CAD, USD")
+    salary_note: str | None = Field(None, description="Role/level the salary refers to and how reliable it is")
+    salary_source_url: str | None = None
+    mba_roles: list[str] = Field(default_factory=list, description="Typical roles they hire MBAs into, e.g. 'Associate', 'Product Manager'")
+    locations: list[str] = Field(default_factory=list, description="Office cities in the target country")
+    visa_sponsorship: HiresAnswer = Field("unsure", description="Whether they sponsor work visas in the country: yes/no/unsure")
+    recruiting_notes: str | None = Field(None, description="MBA programs, application windows, recruiting timeline")
+    custom_answer: str | None = Field(None, description="Answer to the student's extra question, if one was asked")
+    sources: list[str] = Field(default_factory=list, description="URLs used")
+
+
+class FitScore(BaseModel):
+    company: str
+    score: int = Field(ge=1, le=10, description="1-10 fit with the student's priorities")
+    reason: str = Field(description="One short sentence")
+
+
+class FitScores(BaseModel):
+    scores: list[FitScore]

@@ -8,3 +8,4 @@ data/reports/*.pdf
 logs/last_analyze.txt
 logs/overlap.txt
 logs/last_summary.txt
+logs/last_research.txt

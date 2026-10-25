@@ -82,3 +82,13 @@ Groups employers from the analyzed reports of the city's top 3 MBA programs into
 - The model groups them into 6–12 industries and picks the most useful (companies listed by more schools first).
 - Code then drops any name not in the reports and enforces the 100 cap. `*` = listed by more than one school.
 - One run for Rotman + Schulich (787 unique employers in) ≈ 9k input / 2.6k output tokens.
+
+## Company Researcher + Tracker
+- `research_companies`: per company (web search, max 20 per run, 4 at a time, cached 30 days): careers URL,
+  post-MBA base salary range (+ source), MBA roles, office cities in the country, visa sponsorship (yes/no/unsure),
+  recruiting programs/timeline, and an optional custom question from the student. Salaries with no source are dropped.
+  ≈ 17k input / 1.1k output tokens per company.
+- `rank_companies`: by salary (code) or by fit to the student's priorities (one small model call, no web search).
+- Tracker (`tracker` table, per session): student picks 10–15 companies (max 15); status
+  interested/applied/interviewing/offer/rejected + notes. `add_to_tracker`, `view_tracker`, `update_tracker`;
+  `GET /api/tracker/{session_id}` for the frontend.
