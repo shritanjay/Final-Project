@@ -50,7 +50,7 @@ export default function Workspace({ onLogout }: { onLogout: () => void }) {
       )}
 
       <main className="workspace">
-        <Chat onReply={refresh} returning={tracker.length > 0} />
+        <Chat onReply={refresh} returning={(me?.stage ?? 0) > 0 || tracker.length > 0} />
         <Sidebar me={me} tracker={tracker} postings={postings} onChange={refresh} />
       </main>
     </div>

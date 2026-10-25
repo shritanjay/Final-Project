@@ -57,6 +57,14 @@ Drop employment report PDFs in `data/reports/` and run `python analyze_reports.p
 - Cost: ~19k input tokens and a few web searches per company (logged in `logs/usage_log.json`).
 
 ## Boss agent (Career Scout)
+**Guided path.** The chat opens with "Hey! Where do you want to work after your MBA?" (static, no tokens), then the
+boss walks the student through 6 steps in order, showing results and asking before each next step:
+1. Where to work (city + country) → 2. Employment reports (agents find them, or the student uploads) →
+3. Employers by industry → 4. Research companies → 5. Tracker (5–15) → 6. Job postings.
+Each specialist tool marks its step done in code (`Session.stage`, saved in `user_prefs.stage`), so the boss always
+knows the next step, even for returning students. Changing the location resets to step 1. The sidebar's
+"Your path" stepper shows progress (`/api/me` returns `stage` and `steps`).
+
 Multi-agent pattern from Lecture 10: a boss agent talks to the student and delegates to specialists via tools.
 - Flow: asks for the target country (and optional city) → asks whether to **upload** report PDFs or have agents **find** them →
   delegates to the Report Analyst (`analyze_reports`), Program Scout (`research_programs`), and

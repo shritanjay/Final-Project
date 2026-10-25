@@ -129,6 +129,16 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(180, 100, 60
 .icon-btn { white-space: nowrap; padding: 10px 14px; }
 
 /* Sidebar */
+.path { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; position: relative; }
+.path li { display: flex; align-items: center; gap: 11px; padding: 6px 4px; font-size: 14px; color: var(--muted); }
+.path-dot {
+  width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; border: 1px solid var(--sand); background: var(--cream); color: var(--muted);
+}
+.path-done { color: var(--bark); }
+.path-done .path-dot { background: var(--olive); border-color: var(--olive); color: var(--paper); }
+.path-now { color: var(--espresso); font-weight: 600; background: var(--linen); border-radius: 10px; }
+.path-now .path-dot { background: var(--terracotta); border-color: var(--terracotta); color: var(--paper); }
 .sidebar { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; min-height: 0; padding-bottom: 4px; }
 .side-card { padding: 18px 18px 16px; }
 .side-card h3 { font-size: 18px; margin-bottom: 10px; }

@@ -2,12 +2,12 @@ import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { api, ChatMsg } from "../api";
 
-const STARTERS = [
-  "Help me find companies to apply to",
-  "How does Career Scout work?",
-  "I have employment reports to upload",
-];
-const RETURNING = ["Check my tracked companies for new postings", "Show my tracker", "Research my tracked companies"];
+const GREETING = `**Hey! Where do you want to work after your MBA?**
+
+Tell me the city and country, for example *"Berlin, Germany"*, or just a country if you're open to anywhere there.
+
+From there I'll walk you through it step by step: find the employment reports of the top MBA programs in that city, pull out the companies that hire their grads, research the ones you like, and track their job postings.`;
+const RETURNING = ["Continue where I left off", "Check my tracked companies for new postings", "Show my tracker"];
 
 export default function Chat({ onReply, returning }: { onReply: () => void; returning: boolean }) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -81,11 +81,16 @@ export default function Chat({ onReply, returning }: { onReply: () => void; retu
       </div>
 
       <div className="chat-log">
-        {messages.length === 0 && !busy && (
+        {messages.length === 0 && !busy && !returning && (
+          <div className="msg msg-assistant">
+            <ReactMarkdown>{GREETING}</ReactMarkdown>
+          </div>
+        )}
+        {messages.length === 0 && !busy && returning && (
           <div className="chat-empty">
-            <p className="serif-lg">{returning ? "Welcome back." : "Where do you want to work after your MBA?"}</p>
+            <p className="serif-lg">Welcome back.</p>
             <div className="chips">
-              {(returning ? RETURNING : STARTERS).map((s) => (
+              {RETURNING.map((s) => (
                 <button key={s} className="chip" onClick={() => send(s)}>{s}</button>
               ))}
             </div>
@@ -120,7 +125,7 @@ export default function Chat({ onReply, returning }: { onReply: () => void; retu
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKey}
-          placeholder="Message Career Scout…"
+          placeholder={messages.length === 0 && !returning ? "Type a city and country…" : "Message Career Scout…"}
           rows={1}
           disabled={busy}
         />

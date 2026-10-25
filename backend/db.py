@@ -151,6 +151,7 @@ MIGRATIONS = [  # columns added after tables were first created
     "ALTER TABLE job_postings ADD COLUMN location_flexible INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE posting_scans ADD COLUMN roles TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE user_prefs ADD COLUMN stage INTEGER NOT NULL DEFAULT 0",
 ]
 
 
@@ -443,18 +444,21 @@ def scan_notes(conn: sqlite3.Connection, student: str, location_key: str) -> lis
     ).fetchall()
 
 
-def get_prefs(conn: sqlite3.Connection, user_id: int) -> tuple[str | None, str | None, list[str]]:
-    row = conn.execute("SELECT country, city, target_roles FROM user_prefs WHERE user_id = ?", (user_id,)).fetchone()
-    return (row[0], row[1], json.loads(row[2])) if row else (None, None, [])
+def get_prefs(conn: sqlite3.Connection, user_id: int) -> tuple[str | None, str | None, list[str], int]:
+    """(country, city, target roles, guided-path stage)."""
+    row = conn.execute("SELECT country, city, target_roles, stage FROM user_prefs WHERE user_id = ?", (user_id,)).fetchone()
+    return (row[0], row[1], json.loads(row[2]), row[3]) if row else (None, None, [], 0)
 
 
-def save_prefs(conn: sqlite3.Connection, user_id: int, country: str | None, city: str | None, roles: list[str]) -> None:
+def save_prefs(conn: sqlite3.Connection, user_id: int, country: str | None, city: str | None, roles: list[str],
+               stage: int = 0) -> None:
     with conn:
         conn.execute(
-            """INSERT INTO user_prefs (user_id, country, city, target_roles, updated_at) VALUES (?, ?, ?, ?, datetime('now'))
+            """INSERT INTO user_prefs (user_id, country, city, target_roles, stage, updated_at)
+               VALUES (?, ?, ?, ?, ?, datetime('now'))
                ON CONFLICT (user_id) DO UPDATE SET country = excluded.country, city = excluded.city,
-                 target_roles = excluded.target_roles, updated_at = excluded.updated_at""",
-            (user_id, country, city, json.dumps(roles)),
+                 target_roles = excluded.target_roles, stage = excluded.stage, updated_at = excluded.updated_at""",
+            (user_id, country, city, json.dumps(roles), stage),
         )
 
 

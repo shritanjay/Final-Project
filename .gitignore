@@ -13,3 +13,4 @@ logs/last_postings.txt
 logs/outbox/
 frontend/node_modules/
 frontend/dist/
+logs/last_guided.txt

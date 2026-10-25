@@ -33,7 +33,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
-export type Me = { email: string; email_verified: boolean; country: string | null; city: string | null; target_roles: string[] };
+export type Me = {
+  email: string;
+  email_verified: boolean;
+  country: string | null;
+  city: string | null;
+  target_roles: string[];
+  stage: number; // last completed step of the guided path
+  steps: string[];
+};
 export type ChatMsg = { role: "user" | "assistant"; text: string };
 export type TrackerRow = { company: string; status: Status; careers_url: string; notes: string; updated: string };
 export type Posting = { company: string; title: string; location: string; level: string; url: string; first_seen: string; location_flexible: number };

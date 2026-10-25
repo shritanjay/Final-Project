@@ -126,9 +126,9 @@ def reset_password(body: ResetBody):
 @app.get("/api/me")
 def me(user: User = Depends(current_user)):
     conn = db.connect()
-    country, city, roles = db.get_prefs(conn, user.id)
+    country, city, roles, stage = db.get_prefs(conn, user.id)
     return {"email": user.email, "email_verified": auth.is_verified(conn, user.id),
-            "country": country, "city": city, "target_roles": roles}
+            "country": country, "city": city, "target_roles": roles, "stage": stage, "steps": boss.STEPS}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -190,7 +190,7 @@ def tracker_delete(company: str, user: User = Depends(current_user)):
 @app.get("/api/postings")
 def postings(user: User = Depends(current_user)):
     """Active postings for the user's tracked companies in their saved city/country."""
-    country, city, _ = db.get_prefs(db.connect(), user.id)
+    country, city, _, _ = db.get_prefs(db.connect(), user.id)
     location = f"{city + ', ' if city else ''}{country}"
     cols = ("company", "title", "location", "level", "url", "first_seen", "location_flexible")
     return [dict(zip(cols, r)) for r in db.postings_for_student(db.connect(), f"user:{user.id}", location)]

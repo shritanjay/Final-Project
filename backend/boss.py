@@ -3,7 +3,7 @@
 Specialists: Report Analyst (PDF -> employers), Geo Verifier (does a company hire in the country?),
 Program Scout (top MBA programs via QS rankings), MBA Employment Report Finder (finds + downloads report PDFs),
 Report Summarizer (groups employers into industries, max 100), Company Researcher (salary, roles,
-locations, visa, recruiting; ranks by salary or fit). Students keep a tracker of 10-15 companies;
+locations, visa, recruiting; ranks by salary or fit). Students keep a tracker of 5-15 companies;
 Job Posting Scout checks their careers pages for intern / MBA / early-career postings in the city.. Conversation state lives per session in memory.
 """
 from dataclasses import dataclass, field
@@ -42,9 +42,17 @@ class Session:
     pending_downloads: list[tuple[str, str]] = field(default_factory=list)  # (url, file name) awaiting OK
     research: dict[str, CompanyResearch] = field(default_factory=dict)  # last researched companies
     target_roles: list[str] = field(default_factory=list)  # e.g. ["strategy", "product", "finance"]
+    stage: int = 0  # last completed step of the guided path (see STEPS)
 
 
 SESSIONS: dict[str, Session] = {}
+
+STEPS = ["Where to work", "Employment reports", "Employers by industry", "Research companies", "Tracker", "Job postings"]
+
+
+def _done(s: Session, step: int) -> None:
+    """Mark a guided-path step complete (set by the tools, not by the model)."""
+    s.stage = max(s.stage, step)
 
 boss = Agent(deps_type=Session, output_type=str, instructions=(Path(__file__).parent / "prompts" / "boss.md").read_text())
 
@@ -53,7 +61,10 @@ boss = Agent(deps_type=Session, output_type=str, instructions=(Path(__file__).pa
 def _state(ctx: RunContext[Session]) -> str:
     s = ctx.deps
     tracked = [r[0] for r in db.tracker_rows(db.connect(), s.id)]
-    return (f"Saved tracker: {', '.join(tracked) or 'empty'}.\n"
+    done = ", ".join(f"{i}. {n}" for i, n in enumerate(STEPS[: s.stage], 1)) or "none"
+    nxt = f"step {s.stage + 1}: {STEPS[s.stage]}" if s.stage < len(STEPS) else "all done (offer a new posting check)"
+    return (f"Guided path: completed steps: {done}. Next: {nxt}.\n"
+            f"Saved tracker: {', '.join(tracked) or 'empty'}.\n"
             f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, "
             f"report_source={s.report_source or 'not chosen'}, target_roles={', '.join(s.target_roles) or 'not set'}.")
 
@@ -61,8 +72,11 @@ def _state(ctx: RunContext[Session]) -> str:
 @boss.tool
 def set_country(ctx: RunContext[Session], country: str, city: str | None = None) -> str:
     """Save the country (and optional city) the student wants to work in, e.g. "Canada", "Toronto"."""
-    ctx.deps.country = country.strip().title()
-    ctx.deps.city = city.strip().title() if city else None
+    new_country, new_city = country.strip().title(), (city.strip().title() if city else None)
+    if (new_country, new_city) != (ctx.deps.country, ctx.deps.city):
+        ctx.deps.stage = 0  # new place: reports and employers need redoing for it
+    ctx.deps.country, ctx.deps.city = new_country, new_city
+    _done(ctx.deps, 1)
     return f"Location set to {ctx.deps.city + ', ' if ctx.deps.city else ''}{ctx.deps.country}."
 
 
@@ -83,8 +97,8 @@ def list_uploaded_reports() -> str:
     return "\n".join(f"- {p.name} ({'analyzed' if db.is_analyzed(conn, p.name) else 'not analyzed'})" for p in pdfs)
 
 
-@boss.tool_plain
-async def analyze_reports() -> str:
+@boss.tool
+async def analyze_reports(ctx: RunContext[Session]) -> str:
     """Delegate to the Report Analyst: extract employers from every uploaded PDF not analyzed yet."""
     conn = db.connect()
     lines = []
@@ -101,6 +115,8 @@ async def analyze_reports() -> str:
                      + (f", {len(rejected)} dropped (not found on cited page)" if rejected else ""))
     lines += await scan_reports(conn)  # salary-by-industry/function tables
     total = conn.execute("SELECT COUNT(DISTINCT company) FROM employers").fetchone()[0]
+    if total:
+        _done(ctx.deps, 2)
     return ("\n".join(lines) or "No new PDFs to analyze.") + f"\nDatabase now has {total} distinct employers."
 
 
@@ -210,10 +226,10 @@ def _load_session(user_id: int) -> Session:
     key = f"user:{user_id}"
     if key not in SESSIONS:
         conn = db.connect()
-        country, city, roles = db.get_prefs(conn, user_id)
+        country, city, roles, stage = db.get_prefs(conn, user_id)
         saved = db.get_chat_history(conn, user_id)
         history = ModelMessagesTypeAdapter.validate_json(saved) if saved else []
-        SESSIONS[key] = Session(id=key, country=country, city=city, target_roles=roles, history=history)
+        SESSIONS[key] = Session(id=key, country=country, city=city, target_roles=roles, stage=stage, history=history)
     return SESSIONS[key]
 
 
@@ -235,7 +251,7 @@ async def chat(user_id: int, message: str) -> tuple[Session, str]:
     )
     session.history = session.history[: len(session.history) - len(context)] + result.all_messages()
     conn = db.connect()
-    db.save_prefs(conn, user_id, session.country, session.city, session.target_roles)
+    db.save_prefs(conn, user_id, session.country, session.city, session.target_roles, session.stage)
     db.save_chat_history(conn, user_id, ModelMessagesTypeAdapter.dump_json(session.history).decode())
     return session, result.output
 
@@ -278,6 +294,7 @@ async def summarize_employers(ctx: RunContext[Session]) -> str:
     if not files:
         return "No analyzed reports yet."
     summary, cands = await summarize(conn, files, s.city or s.country or "the target location")
+    _done(s, 3)
     total = sum(len(g.companies) for g in summary.industries)
     lines = [f"Reports used: {', '.join(files)}. {len(cands)} unique employers found; showing {total}.",
              f"Overview: {summary.overview}"]
@@ -328,6 +345,8 @@ async def research_companies(ctx: RunContext[Session], companies: list[str], que
     for c in companies:  # reports are the primary salary source (also for cached research)
         if c in s.research:
             apply_report_salary(conn, s.research[c])
+    if any(c in s.research for c in companies):
+        _done(s, 4)
     lines = [_fmt_research(s.research[c]) for c in companies if c in s.research]
     head = f"Researched {len(results)} new, {len(companies) - len(todo)} cached."
     return head + "\n" + "\n".join(lines) + (f"\nFailed: {', '.join(errors)}" if errors else "")
@@ -352,7 +371,7 @@ async def rank_companies(ctx: RunContext[Session], by: Literal["salary", "fit"] 
 
 @boss.tool
 def add_to_tracker(ctx: RunContext[Session], companies: list[str]) -> str:
-    """Add companies the student picked to their application tracker (10-15 companies recommended, max 15)."""
+    """Add companies the student picked to their application tracker (5-15 companies recommended, max 15)."""
     s = ctx.deps
     conn = db.connect()
     have = len(db.tracker_rows(conn, s.id))
@@ -365,11 +384,13 @@ def add_to_tracker(ctx: RunContext[Session], companies: list[str]) -> str:
         if db.tracker_add(conn, s.id, c, url):
             added.append(c)
             have += 1
+    if have:
+        _done(s, 5)
     msg = f"Added {len(added)}: {', '.join(added) or 'none'}. Tracker has {have}/{db.TRACKER_MAX}."
     if skipped:
         msg += f" Not added (tracker full): {', '.join(skipped)}."
-    if have < 10:
-        msg += f" Suggest picking {10 - have} more (10-15 recommended)."
+    if have < 5:
+        msg += f" Suggest picking {5 - have} more (5-15 recommended)."
     return msg
 
 
@@ -414,7 +435,7 @@ async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> s
     conn = db.connect()
     tracked = db.tracker_rows(conn, s.id)
     if not tracked:
-        return "Tracker is empty. Ask the student to pick 10-15 companies first."
+        return "Tracker is empty. Ask the student to pick 5-15 companies first."
     if not s.target_roles:
         return "Ask the student which role types they want (e.g. strategy, product, finance) and call set_target_roles first."
     key = _location_key(s)
@@ -427,6 +448,8 @@ async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> s
         new_total += db.save_posting_scan(conn, company, key, scan, roles)
         if scan.careers_url:
             db.set_tracker_careers_url(conn, s.id, company, scan.careers_url)
+    if scans or len(todo) < len(tracked):
+        _done(s, 6)
     return (f"Checked {len(scans)} companies ({len(tracked) - len(todo)} checked in last 24h, skipped); "
             f"{new_total} new postings.\n" + _postings_report(conn, s) + (f"\nFailed: {', '.join(errors)}" if errors else ""))
 

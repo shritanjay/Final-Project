@@ -86,3 +86,6 @@ Home page - > Change it to -> Doing an MBA and wanting to work and live somewher
 
 ## 21. City not asked
 why does it automatically say Toronto canada ? it doesnt ask me the city
+
+## 22. Guided step-by-step flow
+It should first ask me where I want to work. It then should ask me for everything that we discussed for the agents to do. So it should start with hey, where do you want to work? What do you want to do? And then it should go on. So maybe not what you want to do, but basically where you want to work. And then after I say I want to work in Toronto in Canada, or whatever else the user wants to say, the AI should prompt back and ask me about providing me with the employment reports or I will provide it with it. And then it should give the step-by-step thinking. So, hey, like here are the employment reports of the top MBAs in your city. And then it should go ahead and ask me if I want to then do the next step and so forth. You already know what those next steps are, as we discussed building the agents one by one. So keep that in mind.
