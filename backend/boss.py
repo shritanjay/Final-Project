@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter, ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from backend import db
 from backend.geo_verifier import verify
@@ -29,6 +29,7 @@ from backend.models import CompanyResearch
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = ROOT / "data" / "reports"
 MAX_VERIFY = 50
+HISTORY_TURNS = 10  # only the last N user turns are sent to the model (full history stays saved)
 
 
 @dataclass
@@ -205,26 +206,62 @@ async def verify_employers(ctx: RunContext[Session], limit: int = 10) -> str:
 
 
 def _load_session(user_id: int) -> Session:
-    """In-memory chat state per user; country, city and target roles come from the database on first use."""
+    """Chat state per user, loaded from the database on first use: country, city, roles and chat history."""
     key = f"user:{user_id}"
     if key not in SESSIONS:
-        country, city, roles = db.get_prefs(db.connect(), user_id)
-        SESSIONS[key] = Session(id=key, country=country, city=city, target_roles=roles)
+        conn = db.connect()
+        country, city, roles = db.get_prefs(conn, user_id)
+        saved = db.get_chat_history(conn, user_id)
+        history = ModelMessagesTypeAdapter.validate_json(saved) if saved else []
+        SESSIONS[key] = Session(id=key, country=country, city=city, target_roles=roles, history=history)
     return SESSIONS[key]
+
+
+def _is_user_turn(m: ModelMessage) -> bool:
+    return isinstance(m, ModelRequest) and any(isinstance(p, UserPromptPart) for p in m.parts)
+
+
+def recent_history(messages: list[ModelMessage], turns: int = HISTORY_TURNS) -> list[ModelMessage]:
+    """Last `turns` user turns, cut at a user message so tool calls and their results stay together."""
+    starts = [i for i, m in enumerate(messages) if _is_user_turn(m)]
+    return messages[starts[-turns]:] if len(starts) > turns else messages
 
 
 async def chat(user_id: int, message: str) -> tuple[Session, str]:
     session = _load_session(user_id)
+    context = recent_history(session.history)
     result = await run_logged(
-        boss, message, "boss", model=responses_model(), deps=session, message_history=session.history
+        boss, message, "boss", model=responses_model(), deps=session, message_history=context
     )
-    session.history = result.all_messages()
-    db.save_prefs(db.connect(), user_id, session.country, session.city, session.target_roles)
+    session.history = session.history[: len(session.history) - len(context)] + result.all_messages()
+    conn = db.connect()
+    db.save_prefs(conn, user_id, session.country, session.city, session.target_roles)
+    db.save_chat_history(conn, user_id, ModelMessagesTypeAdapter.dump_json(session.history).decode())
     return session, result.output
 
 
+def chat_transcript(user_id: int) -> list[dict]:
+    """User messages and assistant replies (no tool calls) for showing the conversation in the UI."""
+    out = []
+    for m in _load_session(user_id).history:
+        if isinstance(m, ModelRequest):
+            out += [{"role": "user", "text": p.content} for p in m.parts
+                    if isinstance(p, UserPromptPart) and isinstance(p.content, str)]
+        elif isinstance(m, ModelResponse):
+            text = "".join(p.content for p in m.parts if isinstance(p, TextPart)).strip()
+            if text:
+                out.append({"role": "assistant", "text": text})
+    return out
+
+
+def new_chat(user_id: int) -> None:
+    """Start a fresh conversation. Saved prefs, tracker and postings stay."""
+    db.clear_chat_history(db.connect(), user_id)
+    SESSIONS.pop(f"user:{user_id}", None)
+
+
 def reset_chat(user_id: int) -> None:
-    """Forget the in-memory conversation (on logout). Saved prefs, tracker and postings stay."""
+    """Drop the in-memory copy (on logout); the saved history stays in the database."""
     SESSIONS.pop(f"user:{user_id}", None)
 
 

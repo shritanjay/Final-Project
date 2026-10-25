@@ -6,7 +6,7 @@ reads MBA employment reports, extracts employers, ranks them, and tracks their c
 ## Stack
 - Backend: Python, FastAPI, PydanticAI
 - Model: `gpt-6-luna` via Portkey (only model used)
-- Frontend: React (coming later)
+- Frontend: React + Vite (`frontend/`), warm cream/beige/earthy design
 
 ## Setup
 ```bash
@@ -18,6 +18,14 @@ cp .env.example .env   # add PORTKEY_API_KEY
 The key is loaded from `.env` in this folder first, then from the folder one level up.
 
 ## Run
+Dev (two terminals):
+```bash
+.venv/bin/python -m uvicorn backend.main:app --port 8000   # API
+cd frontend && npm install && npm run dev                   # UI at http://localhost:5173 (proxies /api)
+```
+Single server: `cd frontend && npm run build`, then the API also serves the UI at http://localhost:8000.
+
+Scripts:
 ```bash
 python test_call.py                 # smoke test model call
 python analyze_reports.py           # Report Analyst on every PDF in data/reports/
@@ -127,4 +135,25 @@ Students have accounts, so their tracker and settings are saved between visits (
 - Passwords: scrypt with a per-user salt (standard library). Tokens: random, stored only as SHA-256 hashes,
   valid 30 days, deleted on logout.
 - Saved per user: country, city, target roles, tracker, postings. A returning student is greeted with their
-  tracked companies and offered a new posting check right away. (Chat history itself is in memory only.)
+  tracked companies and offered a new posting check right away.
+
+## Chat history
+Saved per user in `chat_history` (full PydanticAI message list), so conversations survive logout and restarts.
+Only the last 10 user turns are sent to the model to keep token costs flat. `GET /api/chat/history` (UI transcript),
+`POST /api/chat/new` (start over; tracker and settings stay).
+
+## Email (verification + password reset)
+`backend/emailer.py` sends over SMTP; set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`,
+`FRONTEND_URL` in `.env` (see `.env.example`; e.g. Gmail with an app password). **Without `SMTP_HOST`, emails are
+written to `logs/outbox/*.eml`** so everything works locally.
+- Sign-up sends a verification link (48h, single use) → `POST /api/verify-email`; `POST /api/verify-email/resend`.
+  Unverified users can still use the app; the UI shows a banner.
+- `POST /api/password/forgot` (always "ok", doesn't reveal accounts) emails a 1-hour reset link →
+  `POST /api/password/reset` sets the new password and logs out all devices.
+- Email tokens are stored only as SHA-256 hashes.
+
+## Frontend
+`frontend/src`: `App.tsx` (hash routes: login/signup/forgot, `#/verify`, `#/reset`), `components/Workspace.tsx`
+(chat + sidebar), `Chat.tsx` (markdown replies, PDF upload, starter prompts, new chat), `Sidebar.tsx`
+(location & roles, tracker with status dropdown/remove, open roles with level tags and "location matched after hire"),
+`styles.css` (palette: cream `#f6f0e6`, sand `#e4d7c3`, espresso `#3b2f25`, terracotta `#b4643c`, olive `#6e7b4f`).

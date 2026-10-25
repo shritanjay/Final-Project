@@ -107,11 +107,22 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS email_tokens (
+    token_hash TEXT PRIMARY KEY,  -- sha256; raw token only goes out in the email
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purpose TEXT NOT NULL CHECK (purpose IN ('verify', 'reset')),
+    expires_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS user_prefs (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     country TEXT,
     city TEXT,
     target_roles TEXT NOT NULL DEFAULT '[]',  -- JSON list
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS chat_history (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    messages TEXT NOT NULL,  -- PydanticAI message list as JSON
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS tracker (
@@ -139,6 +150,7 @@ CACHE_DAYS = 7
 MIGRATIONS = [  # columns added after tables were first created
     "ALTER TABLE job_postings ADD COLUMN location_flexible INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE posting_scans ADD COLUMN roles TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0",
 ]
 
 
@@ -444,3 +456,22 @@ def save_prefs(conn: sqlite3.Connection, user_id: int, country: str | None, city
                  target_roles = excluded.target_roles, updated_at = excluded.updated_at""",
             (user_id, country, city, json.dumps(roles)),
         )
+
+
+def get_chat_history(conn: sqlite3.Connection, user_id: int) -> str | None:
+    row = conn.execute("SELECT messages FROM chat_history WHERE user_id = ?", (user_id,)).fetchone()
+    return row[0] if row else None
+
+
+def save_chat_history(conn: sqlite3.Connection, user_id: int, messages_json: str) -> None:
+    with conn:
+        conn.execute(
+            """INSERT INTO chat_history (user_id, messages, updated_at) VALUES (?, ?, datetime('now'))
+               ON CONFLICT (user_id) DO UPDATE SET messages = excluded.messages, updated_at = excluded.updated_at""",
+            (user_id, messages_json),
+        )
+
+
+def clear_chat_history(conn: sqlite3.Connection, user_id: int) -> None:
+    with conn:
+        conn.execute("DELETE FROM chat_history WHERE user_id = ?", (user_id,))

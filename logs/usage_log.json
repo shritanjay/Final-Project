@@ -496,5 +496,25 @@
     "cached_input_tokens": 0,
     "output_tokens": 87,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:36:19+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 3805,
+    "cached_input_tokens": 0,
+    "output_tokens": 72,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:40:38+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 3797,
+    "cached_input_tokens": 1864,
+    "output_tokens": 66,
+    "web_searches": 0
   }
 ]

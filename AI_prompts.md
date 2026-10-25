@@ -77,3 +77,6 @@ okay but they might not take more than 5-10 comps so should be fine.
 
 ## 18. User accounts
 is it possible to have a database conencted that has a basic user/ and sign up part. So that the tracker is saved. I.e., the user should be able to log in and then just run the search for those specific companies already identified.
+
+## 19. Chat history, email, earthy frontend
+lets do chat history. and email service. lets do all this you said. And lets also work to build a good design that wraps it nicely. We need to have a more cream/beige/earthy look and feel to the website with this whole thing connected

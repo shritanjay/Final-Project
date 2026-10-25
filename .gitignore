@@ -10,3 +10,6 @@ logs/overlap.txt
 logs/last_summary.txt
 logs/last_research.txt
 logs/last_postings.txt
+logs/outbox/
+frontend/node_modules/
+frontend/dist/

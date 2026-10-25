@@ -1,4 +1,4 @@
-"""Basic email + password accounts. Passwords: scrypt with a per-user salt. Login tokens: random, stored hashed,
+"""Email + password accounts, email verification, and password reset. Passwords: scrypt with a per-user salt. Login tokens: random, stored hashed,
 valid 30 days."""
 import hashlib
 import hmac
@@ -7,6 +7,7 @@ import secrets
 import sqlite3
 
 TOKEN_DAYS = 30
+EMAIL_TOKEN_HOURS = {"verify": 48, "reset": 1}
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -73,3 +74,54 @@ def user_for_token(conn: sqlite3.Connection, token: str) -> tuple[int, str] | No
 def log_out(conn: sqlite3.Connection, token: str) -> None:
     with conn:
         conn.execute("DELETE FROM auth_tokens WHERE token_hash = ?", (_token_hash(token),))
+
+
+def make_email_token(conn: sqlite3.Connection, user_id: int, purpose: str) -> str:
+    """One-time token for an email link. Older tokens of the same purpose for this user are cancelled."""
+    token = secrets.token_urlsafe(32)
+    with conn:
+        conn.execute("DELETE FROM email_tokens WHERE (user_id = ? AND purpose = ?) OR expires_at < datetime('now')",
+                     (user_id, purpose))
+        conn.execute(
+            "INSERT INTO email_tokens (token_hash, user_id, purpose, expires_at) VALUES (?, ?, ?, datetime('now', ?))",
+            (_token_hash(token), user_id, purpose, f"+{EMAIL_TOKEN_HOURS[purpose]} hours"),
+        )
+    return token
+
+
+def _use_email_token(conn: sqlite3.Connection, token: str, purpose: str) -> int:
+    row = conn.execute(
+        "SELECT user_id FROM email_tokens WHERE token_hash = ? AND purpose = ? AND expires_at > datetime('now')",
+        (_token_hash(token), purpose),
+    ).fetchone()
+    if not row:
+        raise AuthError("This link is invalid or has expired.")
+    conn.execute("DELETE FROM email_tokens WHERE token_hash = ?", (_token_hash(token),))
+    return row[0]
+
+
+def verify_email(conn: sqlite3.Connection, token: str) -> None:
+    with conn:
+        user_id = _use_email_token(conn, token, "verify")
+        conn.execute("UPDATE users SET email_verified = 1 WHERE id = ?", (user_id,))
+
+
+def user_id_for_email(conn: sqlite3.Connection, email: str) -> int | None:
+    row = conn.execute("SELECT id FROM users WHERE email = ?", (email.strip().lower(),)).fetchone()
+    return row[0] if row else None
+
+
+def is_verified(conn: sqlite3.Connection, user_id: int) -> bool:
+    return bool(conn.execute("SELECT email_verified FROM users WHERE id = ?", (user_id,)).fetchone()[0])
+
+
+def reset_password(conn: sqlite3.Connection, token: str, new_password: str) -> None:
+    """Sets the new password and logs the user out everywhere. Reset links also prove the email, so mark it verified."""
+    if len(new_password) < 8:
+        raise AuthError("Password must be at least 8 characters.")
+    salt = secrets.token_bytes(16)
+    with conn:
+        user_id = _use_email_token(conn, token, "reset")
+        conn.execute("UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?",
+                     (f"{salt.hex()}${_hash_password(new_password, salt)}", user_id))
+        conn.execute("DELETE FROM auth_tokens WHERE user_id = ?", (user_id,))
