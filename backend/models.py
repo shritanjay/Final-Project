@@ -43,3 +43,14 @@ class MBAProgram(BaseModel):
 
 class ProgramList(BaseModel):
     programs: list[MBAProgram] = Field(description="Top MBA programs in the country, best ranked first")
+
+
+class ReportLink(BaseModel):
+    school: str
+    pdf_url: str | None = Field(None, description="Direct URL of the latest full-time MBA employment report PDF")
+    report_year: str | None = Field(None, description="Class/year the report covers, e.g. 'Class of 2025'")
+    page_url: str | None = Field(None, description="School page that links to the report (if no direct PDF found)")
+
+
+class ReportLinks(BaseModel):
+    reports: list[ReportLink]

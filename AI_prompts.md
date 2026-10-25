@@ -47,3 +47,9 @@ Boss agent asks the end user which country they want to research on. The boss wo
 
 ## 8. Program Scout agent
 okay so one of the agents should be able to research top MBA programs online in the country and city mentioned. They can look up this website: https://www.topuniversities.com/mba-rankings
+
+## 9. Any country/city?
+the agent will be able to do this with any country and city right?
+
+## 10. Report Finder agent
+okay the next agent should be able to search for employment reports of the top 3 mbas in that city. lets look at that.

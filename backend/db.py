@@ -152,3 +152,22 @@ def save_programs(conn: sqlite3.Connection, country: str, city: str | None, prog
             [(country, city or "", p.school, p.city, p.qs_rank, p.source_url, p.employment_report_url)
              for p in programs.programs],
         )
+
+
+def top_programs_in_city(conn: sqlite3.Connection, country: str, city: str | None, n: int) -> list[str]:
+    """Best-ranked cached programs for the location: ones in the city first (Program Scout order), then the rest."""
+    rows = conn.execute(
+        "SELECT school, COALESCE(program_city, '') FROM programs WHERE country = ? AND city = ? ORDER BY id",
+        (country, city or ""),
+    ).fetchall()
+    in_city = [r[0] for r in rows if city and city.lower() in r[1].lower()]
+    rest = [r[0] for r in rows if r[0] not in in_city]
+    return (in_city + rest)[:n]
+
+
+def known_report_url(conn: sqlite3.Connection, school: str) -> str | None:
+    row = conn.execute(
+        "SELECT employment_report_url FROM programs WHERE school = ? AND employment_report_url IS NOT NULL ORDER BY id DESC",
+        (school,),
+    ).fetchone()
+    return row[0] if row else None

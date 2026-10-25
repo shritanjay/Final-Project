@@ -1,7 +1,7 @@
 """Boss agent (Career Scout): owns the chat with the student and delegates to specialist agents.
 
 Specialists: Report Analyst (PDF -> employers), Geo Verifier (does a company hire in the country?),
-Program Scout (top MBA programs via QS rankings). Conversation state lives per session in memory.
+Program Scout (top MBA programs via QS rankings), Report Finder (finds + downloads report PDFs). Conversation state lives per session in memory.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,8 +12,10 @@ from pydantic_ai.messages import ModelMessage
 
 from backend import db
 from backend.geo_verifier import verify
+from backend.models import ReportLinks
 from backend.llm import responses_model, run_logged
 from backend.program_scout import find_programs
+from backend.report_finder import check_pdf, download_pdf, file_name, find_report_links
 from backend.report_analyst import analyze_report
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +29,7 @@ class Session:
     city: str | None = None
     report_source: Literal["upload", "auto"] | None = None
     history: list[ModelMessage] = field(default_factory=list)
+    pending_downloads: list[tuple[str, str]] = field(default_factory=list)  # (url, file name) awaiting OK
 
 
 SESSIONS: dict[str, Session] = {}
@@ -103,7 +106,66 @@ async def research_programs(ctx: RunContext[Session], top_n: int = 10) -> str:
         return "Program Scout found no programs."
     lines = [f"- {p.school} ({p.city or '?'}) QS rank: {p.qs_rank or 'n/a'} | report: {p.employment_report_url or 'not found'}"
              for p in programs.programs]
-    return f"Top MBA programs{note}:\n" + "\n".join(lines) + "\n(Downloading the reports isn't automated yet.)"
+    return f"Top MBA programs{note}:\n" + "\n".join(lines)
+
+
+@boss.tool
+async def find_reports(ctx: RunContext[Session], n: int = 3) -> str:
+    """Delegate to the Report Finder: find the latest employment report PDFs for the top n MBA programs in the
+    session's city (from research_programs). Does NOT download; returns links with file sizes for the student
+    to approve, then call download_reports."""
+    s = ctx.deps
+    if not s.country:
+        return "No country set yet."
+    conn = db.connect()
+    schools = db.top_programs_in_city(conn, s.country, s.city, min(n, 5))
+    if not schools:
+        return "No programs researched yet. Call research_programs first."
+    s.pending_downloads = []
+    lines = []
+    # Free first: links Program Scout already found, checked in code (no model call)
+    to_search = []
+    for school in schools:
+        url = db.known_report_url(conn, school)
+        ok, size, _ = await check_pdf(url) if url else (False, None, "")
+        if ok:
+            name = file_name(school, url)
+            s.pending_downloads.append((url, name))
+            lines.append(f"- {school}: {name}, {f'{size:.1f} MB' if size else 'size unknown'} from {url}")
+        else:
+            to_search.append(school)
+    links = await find_report_links(to_search) if to_search else ReportLinks(reports=[])
+    for link in links.reports:
+        if link.pdf_url:
+            ok, size, note = await check_pdf(link.pdf_url)
+            if ok:
+                name = file_name(link.school, link.report_year)
+                s.pending_downloads.append((link.pdf_url, name))
+                lines.append(f"- {link.school} ({link.report_year or 'year?'}): {name}, "
+                             f"{f'{size:.1f} MB' if size else 'size unknown'} from {link.pdf_url}")
+                continue
+            lines.append(f"- {link.school}: PDF link failed check ({note}): {link.pdf_url}")
+        else:
+            lines.append(f"- {link.school}: no direct PDF; report page: {link.page_url or 'not found'}")
+    return "\n".join(lines) + (f"\n{len(s.pending_downloads)} PDF(s) ready. Ask the student to confirm before "
+                               "calling download_reports." if s.pending_downloads else "")
+
+
+@boss.tool
+async def download_reports(ctx: RunContext[Session]) -> str:
+    """Download the PDFs found by find_reports into data/reports/. Only call after the student said yes."""
+    s = ctx.deps
+    if not s.pending_downloads:
+        return "Nothing to download. Call find_reports first."
+    lines = []
+    for url, name in s.pending_downloads:
+        try:
+            await download_pdf(url, name)
+            lines.append(f"- saved {name}")
+        except Exception as e:
+            lines.append(f"- {name} failed: {e}")
+    s.pending_downloads = []
+    return "\n".join(lines) + "\nNext: analyze_reports to extract employers."
 
 
 @boss.tool

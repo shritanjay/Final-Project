@@ -65,3 +65,11 @@ Finds the top full-time MBA programs in the country/city using the QS MBA rankin
 - QS ranks are often null: the QS site renders ranks with JavaScript and blocks direct fetches, so the model
   only records a rank if it actually sees one.
 - Downloading the report PDFs isn't automated yet; the boss asks the student to download and upload them.
+
+## Report Finder
+Finds the latest full-time MBA employment report PDF for the top 3 programs in the student's city
+(order from Program Scout; schools in the city first).
+- First tries report links Program Scout already found (checked in code, no model call), then web-searches the rest.
+- Every link is checked in code: HTTPS, HTTP 200, file really starts with `%PDF`, under 25 MB.
+- **Nothing is downloaded until the student confirms** in chat (`find_reports` → student says yes → `download_reports`).
+  Files are saved to `data/reports/` as `<school>_<year>.pdf`, then `analyze_reports` extracts employers.
