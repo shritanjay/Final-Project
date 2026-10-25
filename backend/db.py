@@ -2,7 +2,7 @@
 import sqlite3
 from pathlib import Path
 
-from backend.models import CompanyResearch, GeoCheck, MBAProgram, ProgramList, ReportExtraction
+from backend.models import CompanyResearch, GeoCheck, SalaryTable, MBAProgram, ProgramList, ReportExtraction
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "employers.db"
 
@@ -52,6 +52,26 @@ CREATE TABLE IF NOT EXISTS company_research (
     data TEXT NOT NULL,  -- CompanyResearch JSON
     checked_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (company, country, question)
+);
+CREATE TABLE IF NOT EXISTS report_salaries (
+    id INTEGER PRIMARY KEY,
+    report_id INTEGER NOT NULL REFERENCES reports(id) ON DELETE CASCADE,
+    hire_type TEXT NOT NULL,
+    basis TEXT NOT NULL,
+    label TEXT NOT NULL,
+    category TEXT NOT NULL,
+    average INTEGER,
+    median INTEGER,
+    low INTEGER,
+    high INTEGER,
+    range_type TEXT,
+    period TEXT NOT NULL,
+    currency TEXT,
+    page INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS salary_scans (
+    report_id INTEGER PRIMARY KEY REFERENCES reports(id) ON DELETE CASCADE,
+    scanned_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS tracker (
     id INTEGER PRIMARY KEY,
@@ -256,3 +276,46 @@ def tracker_remove(conn: sqlite3.Connection, student: str, company: str) -> bool
     with conn:
         cur = conn.execute("DELETE FROM tracker WHERE student = ? AND lower(company) = lower(?)", (student, company))
     return cur.rowcount == 1
+
+
+def unscanned_salary_reports(conn: sqlite3.Connection) -> list[tuple[int, str]]:
+    return conn.execute(
+        "SELECT id, file FROM reports WHERE id NOT IN (SELECT report_id FROM salary_scans)"
+    ).fetchall()
+
+
+def save_salaries(conn: sqlite3.Connection, report_id: int, table: SalaryTable) -> None:
+    with conn:
+        conn.execute("DELETE FROM report_salaries WHERE report_id = ?", (report_id,))
+        conn.executemany(
+            """INSERT INTO report_salaries (report_id, hire_type, basis, label, category, average, median, low, high,
+               range_type, period, currency, page) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [(report_id, r.hire_type, r.basis, r.label, r.category, r.average, r.median, r.low, r.high,
+              r.range_type, r.period, r.currency, r.page) for r in table.rows],
+        )
+        conn.execute("INSERT OR REPLACE INTO salary_scans (report_id) VALUES (?)", (report_id,))
+
+
+def company_category(conn: sqlite3.Connection, company: str) -> str | None:
+    """Most common function tag the Report Analyst gave this company."""
+    row = conn.execute(
+        "SELECT function, COUNT(*) n FROM employers WHERE lower(company) = lower(?) GROUP BY function ORDER BY n DESC",
+        (company,),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def report_salaries_for(conn: sqlite3.Connection, category: str) -> list[tuple]:
+    """Full-time annual salary rows for a category, one per report: by-industry rows preferred over by-function."""
+    rows = conn.execute(
+        """SELECT COALESCE(r.school, r.file), s.label, s.average, s.median, s.low, s.high, s.range_type, s.currency,
+                  s.page, s.basis, r.file
+           FROM report_salaries s JOIN reports r ON r.id = s.report_id
+           WHERE s.category = ? AND s.hire_type = 'full-time' AND s.period = 'annual'
+           ORDER BY r.file, CASE s.basis WHEN 'industry' THEN 0 ELSE 1 END""",
+        (category,),
+    ).fetchall()
+    best = {}
+    for row in rows:
+        best.setdefault(row[10], row)  # first (industry-based) row per report
+    return list(best.values())

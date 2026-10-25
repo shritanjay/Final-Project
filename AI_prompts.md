@@ -62,3 +62,6 @@ okay so I want that Agent to be called the MBA employment report finder. The nex
 
 ## 13. Company Researcher + tracker
 the next agent will help students research about the companies and make a list. it should be able to research and rank for salary post MBA, types of roles they hire for and anything else that the student wants. this pydantic agent will help to do that and present to the MBA studnet using this. Is there anything else that could be done here? Maybe locations? And then the student should be able to pick 10-15 companies that you form as a tracker.
+
+## 14. Report salaries as source
+Yes, use the salary-by-function tables in the analyzed employment reports as the salary source, with web search as a fallback.

@@ -316,5 +316,65 @@
     "cached_input_tokens": 14411,
     "output_tokens": 185,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:07:53+00:00",
+    "label": "salary_extractor:rotman_school_of_management_2026.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 1819,
+    "cached_input_tokens": 0,
+    "output_tokens": 2281,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:07:59+00:00",
+    "label": "salary_extractor:schulich_school_of_business_2024.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 937,
+    "cached_input_tokens": 0,
+    "output_tokens": 995,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:08:17+00:00",
+    "label": "salary_extractor:schulich_school_of_business_2024.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 957,
+    "cached_input_tokens": 0,
+    "output_tokens": 1000,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:08:30+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 3063,
+    "cached_input_tokens": 2941,
+    "output_tokens": 163,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:08:37+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4410,
+    "cached_input_tokens": 3271,
+    "output_tokens": 617,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:08:43+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 7391,
+    "cached_input_tokens": 5938,
+    "output_tokens": 311,
+    "web_searches": 0
   }
 ]

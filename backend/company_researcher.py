@@ -49,8 +49,11 @@ def _is_url(s: str | None) -> bool:
     return bool(s) and s.startswith(("https://", "http://")) and " " not in s
 
 
-async def research_one(company: str, country: str, city: str | None, question: str | None) -> CompanyResearch:
+async def research_one(company: str, country: str, city: str | None, question: str | None,
+                       skip_salary: bool = False) -> CompanyResearch:
     prompt = f"Company: {company}\nCountry: {country}\nCity: {city or 'any'}\nExtra question: {question or 'none'}"
+    if skip_salary:
+        prompt += "\nSalary: already known from school employment reports. Do NOT search for salary; leave salary fields null."
     result = await run_logged(researcher, prompt, f"company_researcher:{company}", model=responses_model())
     r = result.output
     r.company = company
@@ -64,14 +67,15 @@ async def research_one(company: str, country: str, city: str | None, question: s
     return r
 
 
-async def research_many(companies: list[str], country: str, city: str | None, question: str | None):
+async def research_many(companies: list[str], country: str, city: str | None, question: str | None,
+                        skip_salary: set[str] = frozenset()):
     """Research up to MAX_PER_RUN companies, CONCURRENCY at a time. Returns (results, errors)."""
     sem = asyncio.Semaphore(CONCURRENCY)
 
     async def one(c: str):
         async with sem:
             try:
-                return await research_one(c, country, city, question)
+                return await research_one(c, country, city, question, c in skip_salary)
             except Exception as e:
                 return f"{c}: {type(e).__name__}"
 
@@ -89,3 +93,36 @@ async def fit_scores(rows: list[CompanyResearch], priorities: str) -> dict[str, 
     result = await run_logged(ranker, f"Student priorities: {priorities}\n\nResearch:\n{data}", "company_ranker", model=model())
     names = {r.company for r in rows}
     return {s.company: (s.score, s.reason) for s in result.output.scores if s.company in names}
+
+
+def report_salary(conn, company: str) -> dict | None:
+    """Salary for a company from the school reports' salary tables (by its industry), or None.
+    These are school-reported averages for the industry, not company-specific pay."""
+    from backend import db
+    category = db.company_category(conn, company)
+    if not category or category == "other":
+        return None
+    rows = db.report_salaries_for(conn, category)
+    if not rows:
+        return None
+    avgs = [r[2] or r[3] for r in rows if r[2] or r[3]]
+    parts = [f"{school.split(',')[0]} '{label}' avg {avg or med:,}"
+             + (f" ({rt or 'range'} {lo:,}-{hi:,})" if lo and hi else "") + f", p.{page}"
+             for school, label, avg, med, lo, hi, rt, cur, page, basis, file in rows]
+    return {
+        "low": min(avgs), "high": max(avgs), "currency": next((r[7] for r in rows if r[7]), None),
+        "note": f"School-reported average base for {category} hires (not company-specific): " + "; ".join(parts),
+        "source": "employment reports: " + ", ".join(r[10] for r in rows),
+    }
+
+
+def apply_report_salary(conn, r: CompanyResearch) -> bool:
+    """Reports are the primary salary source: overwrite web salary when a report figure exists."""
+    rs = report_salary(conn, r.company)
+    if not rs:
+        if r.salary_base_low or r.salary_base_high:
+            r.salary_note = f"Web source: {r.salary_note or ''}".strip()
+        return False
+    r.salary_base_low, r.salary_base_high, r.salary_currency = rs["low"], rs["high"], rs["currency"] or r.salary_currency
+    r.salary_note, r.salary_source_url = rs["note"], None
+    return True

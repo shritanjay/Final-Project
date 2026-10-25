@@ -20,7 +20,8 @@ from backend.program_scout import find_programs
 from backend.employment_report_finder import check_pdf, download_pdf, file_name, find_report_links
 from backend.report_analyst import analyze_report
 from backend.report_summarizer import norm, summarize
-from backend.company_researcher import MAX_PER_RUN as MAX_RESEARCH, fit_scores, rank_by_salary, research_many
+from backend.company_researcher import MAX_PER_RUN as MAX_RESEARCH, apply_report_salary, fit_scores, rank_by_salary, report_salary, research_many
+from backend.salary_extractor import scan_reports
 from backend.models import CompanyResearch
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -91,6 +92,7 @@ async def analyze_reports() -> str:
         db.save_report(conn, pdf.name, extraction)
         lines.append(f"- {pdf.name} ({extraction.school or 'school unknown'}): {len(extraction.employers)} employers"
                      + (f", {len(rejected)} dropped (not found on cited page)" if rejected else ""))
+    lines += await scan_reports(conn)  # salary-by-industry/function tables
     total = conn.execute("SELECT COUNT(DISTINCT company) FROM employers").fetchone()[0]
     return ("\n".join(lines) or "No new PDFs to analyze.") + f"\nDatabase now has {total} distinct employers."
 
@@ -259,10 +261,15 @@ async def research_companies(ctx: RunContext[Session], companies: list[str], que
             s.research[c] = hit
         else:
             todo.append(c)
-    results, errors = await research_many(todo, s.country, s.city, question)
+    await scan_reports(conn)  # make sure report salary tables are loaded
+    known = {c for c in todo if report_salary(conn, c)}  # salary from reports -> skip web salary search
+    results, errors = await research_many(todo, s.country, s.city, question, known)
     for r in results:
         db.save_research(conn, s.country, question, r)
         s.research[r.company] = r
+    for c in companies:  # reports are the primary salary source (also for cached research)
+        if c in s.research:
+            apply_report_salary(conn, s.research[c])
     lines = [_fmt_research(s.research[c]) for c in companies if c in s.research]
     head = f"Researched {len(results)} new, {len(companies) - len(todo)} cached."
     return head + "\n" + "\n".join(lines) + (f"\nFailed: {', '.join(errors)}" if errors else "")

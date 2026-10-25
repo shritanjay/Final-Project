@@ -9,6 +9,7 @@ from pathlib import Path
 
 from backend import db
 from backend.report_analyst import analyze_report
+from backend.salary_extractor import scan_reports
 
 REPORTS = Path(__file__).resolve().parent / "data" / "reports"
 
@@ -41,6 +42,8 @@ async def main(force: bool) -> None:
         db.save_report(conn, pdf.name, extraction)
         print(f"done   {pdf.name}: {len(extraction.employers)} employers", end="")
         print(f", dropped {len(rejected)} not found on cited page: {[e.company for e in rejected]}" if rejected else "")
+    for line in await scan_reports(conn):
+        print(f"salary {line}")
     print()
     print_table(db.all_employers(conn))
 

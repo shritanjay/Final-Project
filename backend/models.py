@@ -90,3 +90,22 @@ class FitScore(BaseModel):
 
 class FitScores(BaseModel):
     scores: list[FitScore]
+
+
+class SalaryRow(BaseModel):
+    hire_type: Literal["full-time", "internship"]
+    basis: Literal["industry", "function"] = Field(description="Whether the table is by industry or by function")
+    label: str = Field(description="Row label exactly as in the report, e.g. 'Financial Services'")
+    category: Function = Field(description="Closest app category for this row")
+    average: int | None = None
+    median: int | None = None
+    low: int | None = Field(None, description="Low end of the range shown (25th percentile or minimum)")
+    high: int | None = Field(None, description="High end of the range shown (75th percentile or maximum)")
+    range_type: str | None = Field(None, description="What low/high mean, e.g. '25th-75th percentile' or 'min-max'")
+    period: Literal["annual", "monthly"] = "annual"
+    currency: str | None = Field(None, description="e.g. CAD, USD")
+    page: int = Field(description="Page number from the === PAGE n === marker")
+
+
+class SalaryTable(BaseModel):
+    rows: list[SalaryRow]

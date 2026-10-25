@@ -92,3 +92,14 @@ Groups employers from the analyzed reports of the city's top 3 MBA programs into
 - Tracker (`tracker` table, per session): student picks 10–15 companies (max 15); status
   interested/applied/interviewing/offer/rejected + notes. `add_to_tracker`, `view_tracker`, `update_tracker`;
   `GET /api/tracker/{session_id}` for the frontend.
+
+## Salaries from employment reports
+- **Salary Extractor** (`backend/salary_extractor.py`): after reports are analyzed, sends only the pages that look
+  like salary tables to the model and extracts salary-by-industry and salary-by-function rows (full-time annual and
+  internship monthly; average, median, range and what the range means, currency only if written, page).
+  Code keeps a row only if its number really appears on the cited page. Stored in `report_salaries`
+  (each report scanned once; ≈ 1–2k input / 1–2k output tokens per report).
+- **Company Researcher** uses these as the primary salary source: company → its industry tag from the Report Analyst →
+  full-time annual rows (by-industry preferred) from each school's report. The note cites school, row label and page,
+  and says it's an industry average, not company-specific. Web search is skipped for salary when a report figure exists
+  and used only as a fallback (e.g. companies tagged "other", like law firms).
