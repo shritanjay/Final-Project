@@ -31,3 +31,15 @@ class GeoCheck(BaseModel):
     hires_in_country: HiresAnswer = Field(description="yes = offices or job postings found in the country; no = clear evidence it doesn't; unsure = otherwise")
     evidence_url: str | None = Field(None, description="URL of the page that proves the answer")
     evidence_text: str | None = Field(None, description="Short quote or summary from that page (max ~200 chars)")
+
+
+class MBAProgram(BaseModel):
+    school: str = Field(description="Business school name, e.g. 'Rotman School of Management, University of Toronto'")
+    city: str | None = Field(None, description="City where the program is based")
+    qs_rank: str | None = Field(None, description="QS Global MBA rank as shown (e.g. '45', '101-110'), null if not found")
+    source_url: str = Field(description="URL where the ranking/program info was found")
+    employment_report_url: str | None = Field(None, description="URL of the school's MBA employment report page or PDF, if found")
+
+
+class ProgramList(BaseModel):
+    programs: list[MBAProgram] = Field(description="Top MBA programs in the country, best ranked first")

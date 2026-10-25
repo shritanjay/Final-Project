@@ -44,3 +44,6 @@ Already built, don't rewrite unless I ask:
 
 ## 7. Boss agent flow
 Boss agent asks the end user which country they want to research on. The boss would then ask the end user if they would like to upload a PDF they can of the top MBA programs employment reports. Or alternatively, ask the pydantic ai agent do it all. the boss will then delegate this to other agents. I will tell you more about that in a bit
+
+## 8. Program Scout agent
+okay so one of the agents should be able to research top MBA programs online in the country and city mentioned. They can look up this website: https://www.topuniversities.com/mba-rankings

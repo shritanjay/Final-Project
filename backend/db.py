@@ -2,7 +2,7 @@
 import sqlite3
 from pathlib import Path
 
-from backend.models import GeoCheck, ReportExtraction
+from backend.models import GeoCheck, MBAProgram, ProgramList, ReportExtraction
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "employers.db"
 
@@ -33,7 +33,20 @@ CREATE TABLE IF NOT EXISTS geo_checks (
     checked_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (company, country)
 );
+CREATE TABLE IF NOT EXISTS programs (
+    id INTEGER PRIMARY KEY,
+    country TEXT NOT NULL,
+    city TEXT NOT NULL DEFAULT '',
+    school TEXT NOT NULL,
+    program_city TEXT,
+    qs_rank TEXT,
+    source_url TEXT NOT NULL,
+    employment_report_url TEXT,
+    checked_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
+
+PROGRAM_CACHE_DAYS = 30  # rankings change yearly
 
 CACHE_DAYS = 7
 
@@ -115,3 +128,27 @@ def geo_results(conn: sqlite3.Connection, country: str, school: str | None) -> l
            WHERE g.country = ? {where} ORDER BY g.company COLLATE NOCASE""",
         params,
     ).fetchall()
+
+
+def cached_programs(conn: sqlite3.Connection, country: str, city: str | None) -> ProgramList | None:
+    rows = conn.execute(
+        """SELECT school, program_city, qs_rank, source_url, employment_report_url FROM programs
+           WHERE country = ? AND city = ? AND checked_at >= datetime('now', ?) ORDER BY id""",
+        (country, city or "", f"-{PROGRAM_CACHE_DAYS} days"),
+    ).fetchall()
+    if not rows:
+        return None
+    return ProgramList(programs=[
+        MBAProgram(school=r[0], city=r[1], qs_rank=r[2], source_url=r[3], employment_report_url=r[4]) for r in rows
+    ])
+
+
+def save_programs(conn: sqlite3.Connection, country: str, city: str | None, programs: ProgramList) -> None:
+    with conn:
+        conn.execute("DELETE FROM programs WHERE country = ? AND city = ?", (country, city or ""))
+        conn.executemany(
+            """INSERT INTO programs (country, city, school, program_city, qs_rank, source_url, employment_report_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            [(country, city or "", p.school, p.city, p.qs_rank, p.source_url, p.employment_report_url)
+             for p in programs.programs],
+        )

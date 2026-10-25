@@ -50,10 +50,18 @@ Drop employment report PDFs in `data/reports/` and run `python analyze_reports.p
 
 ## Boss agent (Career Scout)
 Multi-agent pattern from Lecture 10: a boss agent talks to the student and delegates to specialists via tools.
-- Flow: asks for the target country → asks whether to **upload** report PDFs or have agents **find** them →
-  delegates to the Report Analyst (`analyze_reports`), Report Finder (`find_reports`, not built yet), and
+- Flow: asks for the target country (and optional city) → asks whether to **upload** report PDFs or have agents **find** them →
+  delegates to the Report Analyst (`analyze_reports`), Program Scout (`research_programs`), and
   Geo Verifier (`verify_employers`, confirms with the student first since it uses web search).
 - Code: `backend/boss.py`, prompt in `backend/prompts/boss.md`. Runs on the Responses API (needed for function tools).
 - API (`uvicorn backend.main:app --reload`):
   - `POST /api/chat` `{session_id, message}` → `{answer, country, report_source}` (history kept per session in memory)
   - `POST /api/upload` (multipart PDF, max 25 MB) → saved to `data/reports/`
+
+## Program Scout
+Finds the top full-time MBA programs in the country/city using the QS MBA rankings
+(https://www.topuniversities.com/mba-rankings) via web search, plus links to each school's employment report.
+- Saved to the `programs` table; cached 30 days per country/city (one run ≈ 20k input tokens, 4 searches).
+- QS ranks are often null: the QS site renders ranks with JavaScript and blocks direct fetches, so the model
+  only records a rank if it actually sees one.
+- Downloading the report PDFs isn't automated yet; the boss asks the student to download and upload them.

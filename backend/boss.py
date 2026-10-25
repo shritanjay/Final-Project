@@ -1,7 +1,7 @@
 """Boss agent (Career Scout): owns the chat with the student and delegates to specialist agents.
 
 Specialists: Report Analyst (PDF -> employers), Geo Verifier (does a company hire in the country?),
-Report Finder (not built yet). Conversation state lives per session in memory.
+Program Scout (top MBA programs via QS rankings). Conversation state lives per session in memory.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,6 +13,7 @@ from pydantic_ai.messages import ModelMessage
 from backend import db
 from backend.geo_verifier import verify
 from backend.llm import responses_model, run_logged
+from backend.program_scout import find_programs
 from backend.report_analyst import analyze_report
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -23,6 +24,7 @@ MAX_VERIFY = 50
 @dataclass
 class Session:
     country: str | None = None
+    city: str | None = None
     report_source: Literal["upload", "auto"] | None = None
     history: list[ModelMessage] = field(default_factory=list)
 
@@ -35,14 +37,15 @@ boss = Agent(deps_type=Session, output_type=str, instructions=(Path(__file__).pa
 @boss.instructions
 def _state(ctx: RunContext[Session]) -> str:
     s = ctx.deps
-    return f"Current state: country={s.country or 'not set'}, report_source={s.report_source or 'not chosen'}."
+    return f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, report_source={s.report_source or 'not chosen'}."
 
 
 @boss.tool
-def set_country(ctx: RunContext[Session], country: str) -> str:
-    """Save the country the student wants to work in, e.g. "Canada"."""
+def set_country(ctx: RunContext[Session], country: str, city: str | None = None) -> str:
+    """Save the country (and optional city) the student wants to work in, e.g. "Canada", "Toronto"."""
     ctx.deps.country = country.strip().title()
-    return f"Country set to {ctx.deps.country}."
+    ctx.deps.city = city.strip().title() if city else None
+    return f"Location set to {ctx.deps.city + ', ' if ctx.deps.city else ''}{ctx.deps.country}."
 
 
 @boss.tool
@@ -82,10 +85,25 @@ async def analyze_reports() -> str:
     return ("\n".join(lines) or "No new PDFs to analyze.") + f"\nDatabase now has {total} distinct employers."
 
 
-@boss.tool_plain
-async def find_reports() -> str:
-    """Delegate to the Report Finder: find top MBA programs' employment reports automatically."""
-    return "The Report Finder agent isn't built yet. Ask the student to upload PDFs for now."
+@boss.tool
+async def research_programs(ctx: RunContext[Session], top_n: int = 10) -> str:
+    """Delegate to the Program Scout: find the top MBA programs in the session's country/city (QS MBA rankings),
+    with links to their employment reports where found. Cached for 30 days."""
+    s = ctx.deps
+    if not s.country:
+        return "No country set yet."
+    conn = db.connect()
+    programs = db.cached_programs(conn, s.country, s.city)
+    note = " (cached)"
+    if programs is None:
+        programs = await find_programs(s.country, s.city, min(top_n, 15))
+        db.save_programs(conn, s.country, s.city, programs)
+        note = ""
+    if not programs.programs:
+        return "Program Scout found no programs."
+    lines = [f"- {p.school} ({p.city or '?'}) QS rank: {p.qs_rank or 'n/a'} | report: {p.employment_report_url or 'not found'}"
+             for p in programs.programs]
+    return f"Top MBA programs{note}:\n" + "\n".join(lines) + "\n(Downloading the reports isn't automated yet.)"
 
 
 @boss.tool
