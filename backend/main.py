@@ -52,5 +52,5 @@ def tracker(session_id: str):
 @app.get("/api/postings/{session_id}")
 def postings(session_id: str, location: str):
     """location = the searched "City, Country" (or just "Country")."""
-    cols = ("company", "title", "location", "level", "url", "first_seen")
+    cols = ("company", "title", "location", "level", "url", "first_seen", "location_flexible")
     return [dict(zip(cols, r)) for r in db.postings_for_student(db.connect(), session_id, location)]

@@ -117,6 +117,7 @@ class JobPosting(BaseModel):
     level: Literal["internship", "mba", "early-career"] = Field(description="internship/co-op; MBA-specific (e.g. 'MBA Associate'); or early-career/new-grad/associate program")
     url: str = Field(description="Direct link to the posting")
     posted: str | None = Field(None, description="Posted date if shown")
+    location_flexible: bool = Field(False, description="True for country-wide programs where the city is matched after hire")
 
 
 class PostingScan(BaseModel):

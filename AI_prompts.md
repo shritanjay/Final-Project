@@ -68,3 +68,6 @@ Yes, use the salary-by-function tables in the analyzed employment reports as the
 
 ## 15. Job Posting Scout agent
 okay now we will do another agent. they should be able to get career websires, of the 10-15 companies that the student wants and you have made a tracker for. the agent should get the website of the career page and be able to search if they have a job posting in that location for any interns/mba students/or early careers.
+
+## 16. Role filter + country-wide programs
+Yes: ask the student which role types they want (e.g. strategy, product, finance), pass that to the Job Posting Scout, and also include country-wide MBA programs like Amazon Pathways, marked as 'location matched after hire'.

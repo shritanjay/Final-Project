@@ -107,6 +107,10 @@ Groups employers from the analyzed reports of the city's top 3 MBA programs into
 ## Job Posting Scout
 For every company on the student's tracker (10–15), finds the careers page and current **internship / MBA /
 early-career** postings in the city (or country) — boss tools `check_job_postings` and `view_job_postings`.
+- The boss first asks for the student's **target role types** (e.g. strategy, product, finance; `set_target_roles`);
+  postings outside those types are skipped. Changing roles triggers a fresh scan (cache key includes roles).
+- Country-wide MBA / rotational programs whose city is decided after hire (e.g. Amazon Pathways) are included and
+  marked **"location matched after hire"** (`location_flexible`).
 - Web search per company (≈ 15–20k input tokens, 4 at a time). Companies checked in the last 24h are skipped
   unless `force=True`.
 - Code keeps only postings with a link that resolves (free HTTP check; 403/429 from bot-blocking job sites count as live).

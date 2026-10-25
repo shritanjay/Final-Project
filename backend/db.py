@@ -117,10 +117,21 @@ TRACKER_STATUSES = ("interested", "applied", "interviewing", "offer", "rejected"
 CACHE_DAYS = 7
 
 
+MIGRATIONS = [  # columns added after tables were first created
+    "ALTER TABLE job_postings ADD COLUMN location_flexible INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE posting_scans ADD COLUMN roles TEXT NOT NULL DEFAULT ''",
+]
+
+
 def connect() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
+    for sql in MIGRATIONS:
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # already applied
     return conn
 
 
@@ -344,14 +355,16 @@ def report_salaries_for(conn: sqlite3.Connection, category: str) -> list[tuple]:
     return list(best.values())
 
 
-def recently_scanned(conn: sqlite3.Connection, company: str, location_key: str) -> bool:
+def recently_scanned(conn: sqlite3.Connection, company: str, location_key: str, roles: str) -> bool:
+    """Scanned in the last POSTING_CACHE_HOURS for the same target roles."""
     return conn.execute(
-        "SELECT 1 FROM posting_scans WHERE company = ? AND location_key = ? AND scanned_at >= datetime('now', ?)",
-        (company, location_key, f"-{POSTING_CACHE_HOURS} hours"),
+        """SELECT 1 FROM posting_scans WHERE company = ? AND location_key = ? AND roles = ?
+           AND scanned_at >= datetime('now', ?)""",
+        (company, location_key, roles, f"-{POSTING_CACHE_HOURS} hours"),
     ).fetchone() is not None
 
 
-def save_posting_scan(conn: sqlite3.Connection, company: str, location_key: str, scan: PostingScan) -> int:
+def save_posting_scan(conn: sqlite3.Connection, company: str, location_key: str, scan: PostingScan, roles: str) -> int:
     """Upsert postings; mark ones not seen this time inactive. Returns number of NEW postings."""
     with conn:
         before = {r[0] for r in conn.execute(
@@ -359,18 +372,19 @@ def save_posting_scan(conn: sqlite3.Connection, company: str, location_key: str,
         conn.execute("UPDATE job_postings SET active = 0 WHERE company = ? AND location_key = ?", (company, location_key))
         for p in scan.postings:
             conn.execute(
-                """INSERT INTO job_postings (company, location_key, title, location, level, url, posted)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                """INSERT INTO job_postings (company, location_key, title, location, level, url, posted, location_flexible)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT (company, location_key, url) DO UPDATE SET title = excluded.title,
                      location = excluded.location, level = excluded.level, posted = excluded.posted,
-                     last_seen = datetime('now'), active = 1""",
-                (company, location_key, p.title, p.location, p.level, p.url, p.posted),
+                     location_flexible = excluded.location_flexible, last_seen = datetime('now'), active = 1""",
+                (company, location_key, p.title, p.location, p.level, p.url, p.posted, int(p.location_flexible)),
             )
         conn.execute(
-            """INSERT INTO posting_scans (company, location_key, careers_url, note, scanned_at) VALUES (?, ?, ?, ?, datetime('now'))
+            """INSERT INTO posting_scans (company, location_key, careers_url, note, roles, scanned_at)
+               VALUES (?, ?, ?, ?, ?, datetime('now'))
                ON CONFLICT (company, location_key) DO UPDATE SET careers_url = excluded.careers_url,
-                 note = excluded.note, scanned_at = excluded.scanned_at""",
-            (company, location_key, scan.careers_url, scan.note),
+                 note = excluded.note, roles = excluded.roles, scanned_at = excluded.scanned_at""",
+            (company, location_key, scan.careers_url, scan.note, roles),
         )
     return len({p.url for p in scan.postings} - before)
 
@@ -381,9 +395,9 @@ def set_tracker_careers_url(conn: sqlite3.Connection, student: str, company: str
 
 
 def postings_for_student(conn: sqlite3.Connection, student: str, location_key: str) -> list[tuple]:
-    """Active postings for the student's tracked companies: company, title, location, level, url, first_seen."""
+    """Active postings for the student's tracked companies: company, title, location, level, url, first_seen, flexible."""
     return conn.execute(
-        """SELECT p.company, p.title, COALESCE(p.location, ''), p.level, p.url, date(p.first_seen)
+        """SELECT p.company, p.title, COALESCE(p.location, ''), p.level, p.url, date(p.first_seen), p.location_flexible
            FROM job_postings p JOIN tracker t ON t.company = p.company AND t.student = ?
            WHERE p.location_key = ? AND p.active = 1 ORDER BY t.id, p.level, p.title""",
         (student, location_key),

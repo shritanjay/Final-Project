@@ -40,6 +40,7 @@ class Session:
     history: list[ModelMessage] = field(default_factory=list)
     pending_downloads: list[tuple[str, str]] = field(default_factory=list)  # (url, file name) awaiting OK
     research: dict[str, CompanyResearch] = field(default_factory=dict)  # last researched companies
+    target_roles: list[str] = field(default_factory=list)  # e.g. ["strategy", "product", "finance"]
 
 
 SESSIONS: dict[str, Session] = {}
@@ -50,7 +51,8 @@ boss = Agent(deps_type=Session, output_type=str, instructions=(Path(__file__).pa
 @boss.instructions
 def _state(ctx: RunContext[Session]) -> str:
     s = ctx.deps
-    return f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, report_source={s.report_source or 'not chosen'}."
+    return (f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, "
+            f"report_source={s.report_source or 'not chosen'}, target_roles={', '.join(s.target_roles) or 'not set'}.")
 
 
 @boss.tool
@@ -340,9 +342,17 @@ def _location_key(s: Session) -> str:
 
 
 @boss.tool
+def set_target_roles(ctx: RunContext[Session], roles: list[str]) -> str:
+    """Save the role types the student wants, e.g. ["strategy", "product management", "finance"]."""
+    ctx.deps.target_roles = [r.strip().lower() for r in roles if r.strip()]
+    return f"Target roles: {', '.join(ctx.deps.target_roles)}."
+
+
+@boss.tool
 async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> str:
     """Delegate to the Job Posting Scout: for every company on the student's tracker, find the careers page and
-    current intern / MBA / early-career postings in the session's city (or country). Web search ~17k tokens per
+    current intern / MBA / early-career postings in the session's city (or country) for the student's target roles,
+    plus country-wide MBA programs whose city is matched after hire. Set target roles first. Web search ~17k tokens per
     company; companies checked in the last 24h are skipped unless force=True. Saves careers URLs to the tracker."""
     s = ctx.deps
     if not s.country:
@@ -351,13 +361,16 @@ async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> s
     tracked = db.tracker_rows(conn, s.id)
     if not tracked:
         return "Tracker is empty. Ask the student to pick 10-15 companies first."
+    if not s.target_roles:
+        return "Ask the student which role types they want (e.g. strategy, product, finance) and call set_target_roles first."
     key = _location_key(s)
+    roles = ", ".join(sorted(s.target_roles))
     todo = [(c, None if url == "-" else url) for c, _, url, _, _ in tracked
-            if force or not db.recently_scanned(conn, c, key)]
-    scans, errors = await scan_many(todo, s.country, s.city)
+            if force or not db.recently_scanned(conn, c, key, roles)]
+    scans, errors = await scan_many(todo, s.country, s.city, s.target_roles)
     new_total = 0
     for company, scan in scans.items():
-        new_total += db.save_posting_scan(conn, company, key, scan)
+        new_total += db.save_posting_scan(conn, company, key, scan, roles)
         if scan.careers_url:
             db.set_tracker_careers_url(conn, s.id, company, scan.careers_url)
     return (f"Checked {len(scans)} companies ({len(tracked) - len(todo)} checked in last 24h, skipped); "
@@ -368,8 +381,9 @@ def _postings_report(conn, s: Session) -> str:
     key = _location_key(s)
     postings = db.postings_for_student(conn, s.id, key)
     by_company: dict[str, list] = {}
-    for company, title, loc, level, url, first in postings:
-        by_company.setdefault(company, []).append(f"  - [{level}] {title} ({loc}) {url} (first seen {first})")
+    for company, title, loc, level, url, first, flexible in postings:
+        where = f"{loc}; location matched after hire" if flexible else loc
+        by_company.setdefault(company, []).append(f"  - [{level}] {title} ({where}) {url} (first seen {first})")
     lines = []
     for company, careers, note, scanned in db.scan_notes(conn, s.id, key):
         lines.append(f"**{company}**: careers page {careers or 'not found'}")

@@ -426,5 +426,65 @@
     "cached_input_tokens": 3600,
     "output_tokens": 425,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:22:31+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 3697,
+    "cached_input_tokens": 0,
+    "output_tokens": 87,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:22:33+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 1933,
+    "cached_input_tokens": 1881,
+    "output_tokens": 66,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:22:48+00:00",
+    "label": "job_scout:McKinsey & Company",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 11652,
+    "cached_input_tokens": 0,
+    "output_tokens": 931,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-25T23:22:50+00:00",
+    "label": "job_scout:Amazon",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 21335,
+    "cached_input_tokens": 0,
+    "output_tokens": 1010,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-25T23:22:52+00:00",
+    "label": "job_scout:Scotiabank",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 16735,
+    "cached_input_tokens": 0,
+    "output_tokens": 654,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-25T23:23:07+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 3,
+    "input_tokens": 6520,
+    "cached_input_tokens": 4019,
+    "output_tokens": 378,
+    "web_searches": 0
   }
 ]
