@@ -265,6 +265,41 @@ def postings(user: User = Depends(current_user)):
     return [dict(zip(cols, r)) for r in db.postings_for_student(db.connect(), key, location_key(search))]
 
 
+class ManualJob(BaseModel):
+    company: str
+    url: str
+    title: str | None = None
+
+
+def _title_from_url(url: str) -> str:
+    """'.../jobs/associateintern-14918' -> 'Associate Intern' (best effort)."""
+    import re
+    parts = [p for p in url.split("?")[0].rstrip("/").split("/") if p]
+    slug = next((p for p in reversed(parts) if not p.isdigit()), "")
+    slug = re.sub(r"[-_]?\d{3,}$", "", slug)
+    words = re.sub(r"(?<=[a-z])(?=intern|associate|analyst|manager|program)", " ", slug.replace("-", " ").replace("_", " "))
+    title = words.title().strip()
+    generic = {"", "position", "job", "jobs", "apply", "details", "posting", "view", "careers"}
+    return "Job posting" if title.lower() in generic else title
+
+
+@app.post("/api/tracker/job")
+def tracker_add_job(body: ManualJob, user: User = Depends(current_user)):
+    """Add a job link the student found that the scout missed."""
+    url = body.url.strip()
+    if not url.startswith(("https://", "http://")) or " " in url:
+        raise HTTPException(400, "Paste a full job link starting with https://")
+    conn = db.connect()
+    _, key, search = open_search(user)
+    if body.company.lower() not in {r[0].lower() for r in db.tracker_rows(conn, key)}:
+        raise HTTPException(404, "Not in your tracker.")
+    title = (body.title or "").strip() or _title_from_url(url)
+    low = title.lower()
+    level = "mba" if "mba" in low or "associate" in low else "internship" if "intern" in low else "early-career"
+    db.add_manual_posting(conn, body.company, location_key(search), title, url, level)
+    return {"ok": True, "title": title, "level": level}
+
+
 @app.get("/api/tracker/details")
 def tracker_details(user: User = Depends(current_user)):
     """Tracker table: each tracked company with status, careers page, research summary and its open jobs."""

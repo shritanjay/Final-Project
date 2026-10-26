@@ -1316,5 +1316,95 @@
     "cached_input_tokens": 0,
     "output_tokens": 894,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T01:15:57+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4981,
+    "cached_input_tokens": 4905,
+    "output_tokens": 76,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T01:16:11+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13132,
+    "cached_input_tokens": 4558,
+    "output_tokens": 377,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T01:16:18+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 25803,
+    "cached_input_tokens": 0,
+    "output_tokens": 5009,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T01:16:22+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 6,
+    "input_tokens": 18042,
+    "cached_input_tokens": 15539,
+    "output_tokens": 421,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T01:17:04+00:00",
+    "label": "company_researcher:RSM Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 19696,
+    "cached_input_tokens": 0,
+    "output_tokens": 767,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T01:17:11+00:00",
+    "label": "company_researcher:Scotiabank",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 26955,
+    "cached_input_tokens": 0,
+    "output_tokens": 1383,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T01:17:14+00:00",
+    "label": "company_researcher:PepsiCo Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 17778,
+    "cached_input_tokens": 4813,
+    "output_tokens": 974,
+    "web_searches": 5
+  },
+  {
+    "time": "2026-10-26T01:17:19+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 8848,
+    "cached_input_tokens": 0,
+    "output_tokens": 616,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T01:22:11+00:00",
+    "label": "job_scout:McKinsey & Company",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 17249,
+    "cached_input_tokens": 0,
+    "output_tokens": 825,
+    "web_searches": 5
   }
 ]

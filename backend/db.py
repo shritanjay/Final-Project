@@ -177,6 +177,7 @@ MIGRATIONS = [  # columns added after tables were first created
     "ALTER TABLE user_prefs ADD COLUMN stage INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE employers ADD COLUMN evidence TEXT NOT NULL DEFAULT 'hired'",
     "ALTER TABLE user_prefs ADD COLUMN active_search INTEGER",
+    "ALTER TABLE job_postings ADD COLUMN manual INTEGER NOT NULL DEFAULT 0",
 ]
 
 
@@ -432,7 +433,8 @@ def save_posting_scan(conn: sqlite3.Connection, company: str, location_key: str,
     with conn:
         before = {r[0] for r in conn.execute(
             "SELECT url FROM job_postings WHERE company = ? AND location_key = ?", (company, location_key))}
-        conn.execute("UPDATE job_postings SET active = 0 WHERE company = ? AND location_key = ?", (company, location_key))
+        conn.execute("UPDATE job_postings SET active = 0 WHERE company = ? AND location_key = ? AND manual = 0",
+                     (company, location_key))  # postings the student added by hand stay
         for p in scan.postings:
             conn.execute(
                 """INSERT INTO job_postings (company, location_key, title, location, level, url, posted, location_flexible)
@@ -679,9 +681,9 @@ def latest_research(conn: sqlite3.Connection, company: str, country: str) -> Com
 
 
 def postings_by_company(conn: sqlite3.Connection, company: str, location_key: str) -> list[dict]:
-    cols = ("title", "location", "level", "url", "first_seen", "location_flexible")
+    cols = ("title", "location", "level", "url", "first_seen", "location_flexible", "manual")
     return [dict(zip(cols, r)) for r in conn.execute(
-        """SELECT title, COALESCE(location, ''), level, url, date(first_seen), location_flexible FROM job_postings
+        """SELECT title, COALESCE(location, ''), level, url, date(first_seen), location_flexible, manual FROM job_postings
            WHERE company = ? AND location_key = ? AND active = 1
            ORDER BY CASE level WHEN 'mba' THEN 0 WHEN 'internship' THEN 1 ELSE 2 END, title""",
         (company, location_key))]
@@ -692,3 +694,15 @@ def last_scan(conn: sqlite3.Connection, company: str, location_key: str) -> tupl
     row = conn.execute("SELECT note, scanned_at FROM posting_scans WHERE company = ? AND location_key = ?",
                        (company, location_key)).fetchone()
     return (row[0], row[1]) if row else (None, None)
+
+
+def add_manual_posting(conn: sqlite3.Connection, company: str, location_key: str, title: str, url: str, level: str) -> None:
+    """A job link the student found themselves; never hidden by later automatic checks."""
+    with conn:
+        conn.execute(
+            """INSERT INTO job_postings (company, location_key, title, location, level, url, manual)
+               VALUES (?, ?, ?, ?, ?, ?, 1)
+               ON CONFLICT (company, location_key, url) DO UPDATE SET title = excluded.title, level = excluded.level,
+                 active = 1, manual = 1, last_seen = datetime('now')""",
+            (company, location_key, title, location_key, level, url),
+        )

@@ -419,3 +419,11 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(180, 100, 60
 .msg-assistant table { display: block; overflow-x: auto; max-width: 100%; }
 .msg-assistant th, .msg-assistant td { min-width: 110px; vertical-align: top; }
 .msg-assistant td:first-child, .msg-assistant th:first-child { min-width: 120px; font-weight: 600; }
+
+.add-job { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--sand); }
+.add-job-row { display: flex; gap: 6px; }
+.add-job input { flex: 1; min-width: 0; font: inherit; font-size: 13px; background: var(--paper); border: 1px solid var(--sand); border-radius: 8px; padding: 6px 9px; }
+.add-job input.title { flex: 0.7; }
+.add-ok { color: var(--moss); font-weight: 600; }
+.add-err { color: #7d3324; }
+.tag-manual { background: #efe7f5; color: #5d4a73; border-color: #d9cce6; text-transform: none; }

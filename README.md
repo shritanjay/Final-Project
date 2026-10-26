@@ -146,7 +146,12 @@ early-career** postings in the city (or country) — boss tools `check_job_posti
   marked **"location matched after hire"** (`location_flexible`).
 - Web search per company (≈ 15–20k input tokens, 4 at a time). Companies checked in the last 24h are skipped
   unless `force=True`.
-- Code keeps only postings with a link that resolves (free HTTP check; 403/429 from bot-blocking job sites count as live).
+- Searches "<company> <city> associate intern / MBA / intern" and the company's own careers site, and includes
+  multi-office postings (one ad listing many cities) when the city is among them.
+- Free link check in code drops only links that clearly don't exist (404/410, unknown host); links from sites that
+  block or stall automated requests (403/429/timeouts, e.g. mckinsey.com) are kept.
+- Students can paste a job link the scout missed (Tracker row → "Found one we missed?"; `POST /api/tracker/job`);
+  hand-added postings are tagged "added by you" and never hidden by later checks.
 - Postings are stored in `job_postings` with first/last seen; postings missing from a new scan are marked inactive, and
   each check reports how many are **new**. Careers URLs found are saved to the tracker.
 - `GET /api/postings` (login required) for the frontend: postings for the user's tracked companies in their saved location.

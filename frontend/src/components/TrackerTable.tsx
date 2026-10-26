@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { api, STATUSES, Status, TrackerDetail } from "../api";
 
 type Props = {
@@ -22,6 +22,40 @@ const when = (ts: string | null) => {
   const days = Math.floor((Date.now() - new Date(ts.replace(" ", "T") + "Z").getTime()) / 86400000);
   return days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`;
 };
+
+function AddJob({ company, onAdded }: { company: string; onAdded: () => void }) {
+  const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr("");
+    try {
+      const r = await api.addJob(company, url, title || undefined);
+      setMsg(`Added "${r.title}"`);
+      setUrl("");
+      setTitle("");
+      onAdded();
+    } catch (ex) {
+      setErr((ex as Error).message);
+    }
+  }
+
+  return (
+    <form className="add-job" onSubmit={submit}>
+      <span className="muted small">Found one we missed? Paste the job link:</span>
+      <div className="add-job-row">
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" required />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" className="title" />
+        <button className="btn-mini" disabled={!url.trim()}>Add</button>
+      </div>
+      {msg && <span className="add-ok small">{msg} ✓</span>}
+      {err && <span className="add-err small">{err}</span>}
+    </form>
+  );
+}
 
 export default function TrackerTable({ location, rows, onChange, onAsk, onOpenEmployers }: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -159,10 +193,12 @@ export default function TrackerTable({ location, rows, onChange, onAsk, onOpenEm
                                   <span className={`tag tag-${j.level}`}>{j.level}</span>
                                   {j.location.replace(/\s*\(location matched after hire\)/i, "")}
                                   {j.location_flexible ? <em> · location matched after hire</em> : null}
+                                  {j.manual ? <span className="tag tag-manual">added by you</span> : null}
                                 </span>
                               </a>
                             ))
                           )}
+                          <AddJob company={r.company} onAdded={onChange} />
                         </div>
                       </div>
                     </td>

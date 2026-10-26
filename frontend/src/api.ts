@@ -52,7 +52,7 @@ export type ChatAction =
   | { type: "say"; text: string; label: string };
 export type ChatMsg = { role: "user" | "assistant"; text: string; actions?: ChatAction[] };
 export type Search = { id: number; label: string; country: string | null; city: string | null; tracked: number; steps_done: number; active: boolean };
-export type Job = { title: string; location: string; level: string; url: string; first_seen: string; location_flexible: number };
+export type Job = { title: string; location: string; level: string; url: string; first_seen: string; location_flexible: number; manual: number };
 export type TrackerDetail = {
   company: string;
   status: Status;
@@ -91,6 +91,8 @@ export const api = {
   newSearch: () => request("POST", "/searches"),
   switchSearch: (id: number) => request("POST", `/searches/${id}/activate`),
   deleteSearch: (id: number) => request("DELETE", `/searches/${id}`),
+  addJob: (company: string, url: string, title?: string) =>
+    request<{ ok: boolean; title: string; level: string }>("POST", "/tracker/job", { company, url, title }),
   trackerDetails: () => request<{ location: string | null; rows: TrackerDetail[] }>("GET", "/tracker/details"),
   upload: (file: File) => {
     const fd = new FormData();
