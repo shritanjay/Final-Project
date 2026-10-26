@@ -38,14 +38,35 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export type Me = {
   email: string;
   email_verified: boolean;
+  search_id: number; // the open saved search
   country: string | null;
   city: string | null;
-  target_roles: string[];
   steps: string[];
   steps_done: number[]; // 1-based step numbers completed
   next_step: number | null; // first step not done yet
 };
-export type ChatMsg = { role: "user" | "assistant"; text: string };
+// Buttons the boss attaches under a reply.
+export type ChatAction =
+  | { type: "open_tab"; tab: "employers" | "tracker"; label: string }
+  | { type: "track"; companies: string[]; label: string }
+  | { type: "say"; text: string; label: string };
+export type ChatMsg = { role: "user" | "assistant"; text: string; actions?: ChatAction[] };
+export type Search = { id: number; label: string; country: string | null; city: string | null; tracked: number; steps_done: number; active: boolean };
+export type Job = { title: string; location: string; level: string; url: string; first_seen: string; location_flexible: number };
+export type TrackerDetail = {
+  company: string;
+  status: Status;
+  careers_url: string;
+  notes: string;
+  updated: string;
+  research: {
+    salary_low: number | null; salary_high: number | null; currency: string | null; salary_note: string | null;
+    visa: "yes" | "no" | "unsure"; roles: string[]; locations: string[]; recruiting: string | null;
+  } | null;
+  jobs: Job[];
+  jobs_checked: string | null;
+  jobs_note: string | null;
+};
 export type TrackerRow = { company: string; status: Status; careers_url: string; notes: string; updated: string };
 export type Posting = { company: string; title: string; location: string; level: string; url: string; first_seen: string; location_flexible: number };
 export type SchoolTag = { school: string; hired: boolean }; // hired = report says it hired grads (else: recruiting only)
@@ -64,8 +85,13 @@ export const api = {
   resendVerify: () => request("POST", "/verify-email/resend"),
   me: () => request<Me>("GET", "/me"),
   history: () => request<ChatMsg[]>("GET", "/chat/history"),
-  newChat: (opts: { new_search: boolean; clear_tracker: boolean }) => request("POST", "/chat/new", opts),
-  chat: (message: string) => request<{ answer: string }>("POST", "/chat", { message }),
+  newChat: (opts: { new_search: boolean }) => request("POST", "/chat/new", opts),
+  chat: (message: string) => request<{ answer: string; actions: ChatAction[] }>("POST", "/chat", { message }),
+  searches: () => request<Search[]>("GET", "/searches"),
+  newSearch: () => request("POST", "/searches"),
+  switchSearch: (id: number) => request("POST", `/searches/${id}/activate`),
+  deleteSearch: (id: number) => request("DELETE", `/searches/${id}`),
+  trackerDetails: () => request<{ location: string | null; rows: TrackerDetail[] }>("GET", "/tracker/details"),
   upload: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);

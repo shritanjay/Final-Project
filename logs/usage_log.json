@@ -1066,5 +1066,255 @@
     "cached_input_tokens": 0,
     "output_tokens": 840,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:38:37+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4570,
+    "cached_input_tokens": 0,
+    "output_tokens": 94,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:38:49+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13132,
+    "cached_input_tokens": 4558,
+    "output_tokens": 377,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:38:54+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 25803,
+    "cached_input_tokens": 0,
+    "output_tokens": 5009,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:38:57+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 6,
+    "input_tokens": 16967,
+    "cached_input_tokens": 7612,
+    "output_tokens": 411,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:41:27+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 3605,
+    "cached_input_tokens": 3309,
+    "output_tokens": 102,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:41:46+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 9522,
+    "cached_input_tokens": 3602,
+    "output_tokens": 1528,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:42:56+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 14744,
+    "cached_input_tokens": 5803,
+    "output_tokens": 298,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:43:17+00:00",
+    "label": "job_scout:Deloitte",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 24302,
+    "cached_input_tokens": 4817,
+    "output_tokens": 879,
+    "web_searches": 9
+  },
+  {
+    "time": "2026-10-26T00:43:17+00:00",
+    "label": "job_scout:Accenture",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 15441,
+    "cached_input_tokens": 4817,
+    "output_tokens": 643,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T00:43:20+00:00",
+    "label": "job_scout:Bain & Company",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 17285,
+    "cached_input_tokens": 4817,
+    "output_tokens": 1401,
+    "web_searches": 3
+  },
+  {
+    "time": "2026-10-26T00:43:26+00:00",
+    "label": "job_scout:MNP",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 24519,
+    "cached_input_tokens": 4817,
+    "output_tokens": 1243,
+    "web_searches": 8
+  },
+  {
+    "time": "2026-10-26T00:43:29+00:00",
+    "label": "job_scout:JTE Claims Consultants Ltd.",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 14334,
+    "cached_input_tokens": 4817,
+    "output_tokens": 325,
+    "web_searches": 3
+  },
+  {
+    "time": "2026-10-26T00:43:31+00:00",
+    "label": "job_scout:AlixPartners",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 18294,
+    "cached_input_tokens": 4817,
+    "output_tokens": 822,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:43:32+00:00",
+    "label": "job_scout:BDO Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 15822,
+    "cached_input_tokens": 4817,
+    "output_tokens": 1181,
+    "web_searches": 10
+  },
+  {
+    "time": "2026-10-26T00:43:45+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 16250,
+    "cached_input_tokens": 7486,
+    "output_tokens": 864,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:54:53+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13132,
+    "cached_input_tokens": 4558,
+    "output_tokens": 377,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:54:59+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 25803,
+    "cached_input_tokens": 0,
+    "output_tokens": 5009,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:55:03+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 6,
+    "input_tokens": 17431,
+    "cached_input_tokens": 11582,
+    "output_tokens": 462,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:55:36+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 25803,
+    "cached_input_tokens": 0,
+    "output_tokens": 5009,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:55:38+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 7787,
+    "cached_input_tokens": 3724,
+    "output_tokens": 111,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:56:41+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4982,
+    "cached_input_tokens": 0,
+    "output_tokens": 78,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:57:00+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13132,
+    "cached_input_tokens": 4558,
+    "output_tokens": 377,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:57:07+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 25803,
+    "cached_input_tokens": 0,
+    "output_tokens": 5009,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:57:11+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 6,
+    "input_tokens": 18063,
+    "cached_input_tokens": 8170,
+    "output_tokens": 371,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:57:59+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 8187,
+    "cached_input_tokens": 0,
+    "output_tokens": 894,
+    "web_searches": 0
   }
 ]

@@ -1,10 +1,10 @@
-import { EmployerView, Me, TrackerRow } from "./api";
+import { EmployerView, Me } from "./api";
 
 // What the "Next step" button does for each step of the guided path.
 // kind "chat" sends a message to the boss; "employers" opens the Employers tab; "focus" focuses the chat box.
 export type NextAction = { step: number | null; label: string; hint: string; kind: "chat" | "employers" | "focus"; message?: string };
 
-export function nextAction(me: Me | null, tracker: TrackerRow[], employers: EmployerView | null): NextAction | null {
+export function nextAction(me: Me | null, tracker: { company: string }[], employers: EmployerView | null): NextAction | null {
   if (!me) return null;
   const tracked = tracker.map((t) => t.company);
   const list = tracked.slice(0, 15).join(", ");

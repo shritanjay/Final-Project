@@ -4,7 +4,8 @@ Specialists: Report Analyst (PDF -> employers), Geo Verifier (does a company hir
 Program Scout (top MBA programs via QS rankings), MBA Employment Report Finder (finds + downloads report PDFs),
 Report Summarizer (groups employers into industries, max 100), Company Researcher (salary, roles,
 locations, visa, recruiting; ranks by salary or fit). Students keep a tracker of 5-15 companies;
-Job Posting Scout checks their careers pages for intern / MBA / early-career postings in the city.. Conversation state lives per session in memory.
+Job Posting Scout checks their careers pages for intern / MBA / early-career postings in the city.
+Each saved search (one per location) has its own chat, progress, employer table and tracker.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,16 +35,26 @@ HISTORY_TURNS = 10  # only the last N user turns are sent to the model (full his
 
 @dataclass
 class Session:
-    id: str = ""
-    owner: str | None = None  # "<user id>:<created_at>" of the account this in-memory state belongs to
+    id: str = ""  # tracker scope key of the open search ("search:<id>")
+    owner: str | None = None  # account stamp + search id this in-memory state belongs to
+    user_id: int = 0
+    search_id: int = 0
     country: str | None = None
     city: str | None = None
     report_source: Literal["upload", "auto"] | None = None
     history: list[ModelMessage] = field(default_factory=list)
     pending_downloads: list[tuple[str, str]] = field(default_factory=list)  # (url, file name) awaiting OK
     research: dict[str, CompanyResearch] = field(default_factory=dict)  # last researched companies
-    target_roles: list[str] = field(default_factory=list)  # e.g. ["strategy", "product", "finance"]
     stage: int = 0  # bitmask of completed guided-path steps: bit (n-1) set = step n done (see STEPS)
+    actions: dict[str, list[dict]] = field(default_factory=dict)  # transcript index -> buttons under that reply
+    turn_actions: list[dict] = field(default_factory=list)  # buttons collected by tools during this turn
+    switch_to: tuple[str, str | None] | None = None  # set_country asked for a different place -> new saved search
+
+
+def _action(s: "Session", action: dict) -> None:
+    """Add a button under this turn's reply (deduplicated)."""
+    if action not in s.turn_actions:
+        s.turn_actions.append(action)
 
 
 SESSIONS: dict[str, Session] = {}
@@ -83,12 +94,20 @@ def _state(ctx: RunContext[Session]) -> str:
 @boss.tool
 def set_country(ctx: RunContext[Session], country: str, city: str | None = None) -> str:
     """Save the country (and optional city) the student wants to work in, e.g. "Canada", "Toronto"."""
+    s = ctx.deps
     new_country, new_city = country.strip().title(), (city.strip().title() if city else None)
-    if (new_country, new_city) != (ctx.deps.country, ctx.deps.city):
-        ctx.deps.stage = 0  # new place: reports and employers need redoing for it
-    ctx.deps.country, ctx.deps.city = new_country, new_city
-    _done(ctx.deps, 1)
-    return f"Location set to {ctx.deps.city + ', ' if ctx.deps.city else ''}{ctx.deps.country}."
+    label = f"{new_city + ', ' if new_city else ''}{new_country}"
+    if s.country and (new_country, new_city) != (s.country, s.city):
+        # A different place becomes its own saved search; the current one is kept as it is.
+        old = f"{s.city + ', ' if s.city else ''}{s.country}"
+        s.switch_to = (new_country, new_city)
+        s.country, s.city, s.stage = new_country, new_city, 0
+        _done(s, 1)
+        return (f"Started a new saved search for {label}. The {old} search is kept: the student can switch back "
+                f"any time from the search menu at the top.")
+    s.country, s.city = new_country, new_city
+    _done(s, 1)
+    return f"Location set to {label}."
 
 
 @boss.tool
@@ -176,6 +195,10 @@ async def find_reports(ctx: RunContext[Session]) -> str:
         return "No programs researched yet. Call research_programs first."
     s.pending_downloads = []
     picked, notes, idx, searches = [], [], 0, 0
+    def _offer_download():
+        if s.pending_downloads:
+            _action(s, {"type": "say", "text": "Yes, download them and pull out the employers.",
+                        "label": "Yes, download and extract employers"})
 
     def where(school: str) -> str:
         pc = db.program_city(conn, school)
@@ -218,6 +241,7 @@ async def find_reports(ctx: RunContext[Session]) -> str:
             else:
                 page = link.page_url if link else None
                 notes.append(f"- {school}: no PDF found{f' (report page: {page})' if page else ''}; trying the next school")
+    _offer_download()
     out = [f"Reports for {len(picked)} of {REPORTS_PER_CITY} programs:"] + picked
     if notes:
         out += ["Skipped:"] + notes
@@ -267,18 +291,21 @@ async def verify_employers(ctx: RunContext[Session], limit: int = 10) -> str:
 
 
 def _load_session(user_id: int) -> Session:
-    """Chat state per user. The database is the source of truth: country, city, roles and progress are re-read on
-    every call. The in-memory part (history, pending downloads, research) is tied to the exact account (id + creation
-    time), so a reused user id never inherits someone else's conversation."""
-    key = f"user:{user_id}"
+    """State of the user's open search. The database is the source of truth for location and progress (re-read every
+    call). The in-memory part (history, pending downloads, research) is tied to the exact account and search, so a
+    reused id or a switched search never inherits someone else's conversation."""
     conn = db.connect()
-    owner = db.user_stamp(conn, user_id)
+    sid = db.active_search_id(conn, user_id)
+    key = db.scope(sid)
+    owner = f"{db.user_stamp(conn, user_id)}|{sid}"
+    row = db.get_search(conn, sid)
     session = SESSIONS.get(key)
     if session is None or session.owner != owner:
-        saved = db.get_chat_history(conn, user_id)
-        history = ModelMessagesTypeAdapter.validate_json(saved) if saved else []
-        session = SESSIONS[key] = Session(id=key, owner=owner, history=history)
-    session.country, session.city, session.target_roles, session.stage = db.get_prefs(conn, user_id)
+        history = ModelMessagesTypeAdapter.validate_json(row["messages"]) if row["messages"] else []
+        session = SESSIONS[key] = Session(id=key, owner=owner, user_id=user_id, search_id=sid, history=history,
+                                          actions=row["actions"])
+    session.country, session.city, session.stage = row["country"], row["city"], row["stage"]
+    session.switch_to = None
     return session
 
 
@@ -292,23 +319,10 @@ def recent_history(messages: list[ModelMessage], turns: int = HISTORY_TURNS) -> 
     return messages[starts[-turns]:] if len(starts) > turns else messages
 
 
-async def chat(user_id: int, message: str) -> tuple[Session, str]:
-    session = _load_session(user_id)
-    context = recent_history(session.history)
-    result = await run_logged(
-        boss, message, "boss", model=responses_model(), deps=session, message_history=context
-    )
-    session.history = session.history[: len(session.history) - len(context)] + result.all_messages()
-    conn = db.connect()
-    db.save_prefs(conn, user_id, session.country, session.city, session.target_roles, session.stage)
-    db.save_chat_history(conn, user_id, ModelMessagesTypeAdapter.dump_json(session.history).decode())
-    return session, result.output
-
-
-def chat_transcript(user_id: int) -> list[dict]:
+def _transcript(history: list[ModelMessage]) -> list[dict]:
     """User messages and assistant replies (no tool calls) for showing the conversation in the UI."""
     out = []
-    for m in _load_session(user_id).history:
+    for m in history:
         if isinstance(m, ModelRequest):
             out += [{"role": "user", "text": p.content} for p in m.parts
                     if isinstance(p, UserPromptPart) and isinstance(p.content, str)]
@@ -319,23 +333,80 @@ def chat_transcript(user_id: int) -> list[dict]:
     return out
 
 
-def new_chat(user_id: int, new_search: bool = False, clear_tracker: bool = False) -> None:
-    """Start a fresh conversation.
-    new_search: also forget location, target roles, guided-path progress and the employer table (start over).
-    clear_tracker: also empty the tracker. Analyzed reports and cached research stay (shared, saves tokens)."""
+def _attach(actions: dict, history: list[ModelMessage], turn_actions: list[dict]) -> dict:
+    """Pin this turn's buttons to the last assistant message of the transcript."""
+    if turn_actions:
+        actions = {**actions, str(len(_transcript(history)) - 1): turn_actions}
+    return actions
+
+
+def _dump(history: list[ModelMessage]) -> str:
+    return ModelMessagesTypeAdapter.dump_json(history).decode()
+
+
+async def chat(user_id: int, message: str) -> tuple[Session, str, list[dict]]:
+    session = _load_session(user_id)
+    before = (session.country, session.city, session.stage)
+    session.turn_actions = []
+    context = recent_history(session.history)
+    result = await run_logged(
+        boss, message, "boss", model=responses_model(), deps=session, message_history=context
+    )
     conn = db.connect()
-    db.clear_chat_history(conn, user_id)
+    full = session.history[: len(session.history) - len(context)] + result.all_messages()
+    if session.switch_to:
+        # Keep the old search as it was (with this exchange), then open the new place as its own search.
+        db.update_search(conn, session.search_id, *before)
+        db.save_search_chat(conn, session.search_id, _dump(full), session.actions)
+        country, city = session.switch_to
+        new_sid = db.create_search(conn, user_id, country, city, session.stage)
+        new_history = result.new_messages()
+        new_actions = _attach({}, new_history, session.turn_actions)
+        db.save_search_chat(conn, new_sid, _dump(new_history), new_actions)
+        SESSIONS.pop(session.id, None)
+        return _load_session(user_id), result.output, session.turn_actions
+    session.history = full
+    session.actions = _attach(session.actions, full, session.turn_actions)
+    db.update_search(conn, session.search_id, session.country, session.city, session.stage)
+    db.save_search_chat(conn, session.search_id, _dump(full), session.actions)
+    return session, result.output, session.turn_actions
+
+
+def chat_transcript(user_id: int) -> list[dict]:
+    session = _load_session(user_id)
+    out = _transcript(session.history)
+    for i, m in enumerate(out):
+        if str(i) in session.actions:
+            m["actions"] = session.actions[str(i)]
+    return out
+
+
+def new_chat(user_id: int, new_search: bool = False) -> None:
+    """new_search=False: clear the open search's conversation (location, progress, table and tracker stay).
+    new_search=True: open a brand-new empty search; the current one is kept and can be switched back to."""
+    conn = db.connect()
+    session = _load_session(user_id)
     if new_search:
-        db.save_prefs(conn, user_id, None, None, [], 0)
-        db.clear_employer_view(conn, user_id)
-    if clear_tracker:
-        db.tracker_clear(conn, f"user:{user_id}")
-    SESSIONS.pop(f"user:{user_id}", None)
+        db.create_search(conn, user_id)
+    else:
+        db.save_search_chat(conn, session.search_id, None, {})
+    SESSIONS.pop(session.id, None)
+
+
+def switch_search(user_id: int, search_id: int) -> bool:
+    return db.set_active_search(db.connect(), user_id, search_id)
+
+
+def delete_search(user_id: int, search_id: int) -> bool:
+    ok = db.delete_search(db.connect(), user_id, search_id)
+    SESSIONS.pop(db.scope(search_id), None)
+    return ok
 
 
 def reset_chat(user_id: int) -> None:
-    """Drop the in-memory copy (on logout); the saved history stays in the database."""
-    SESSIONS.pop(f"user:{user_id}", None)
+    """Drop this user's in-memory state (on logout); everything saved stays in the database."""
+    for key in [k for k, v in SESSIONS.items() if v.user_id == user_id]:
+        SESSIONS.pop(key, None)
 
 
 FUNCTION_INDUSTRY = {  # fallback industry for employers outside the curated top picks
@@ -378,15 +449,16 @@ async def summarize_employers(ctx: RunContext[Session]) -> str:
     } for k, c in cands.items()]
     rows.sort(key=lambda r: (not r["top_pick"], -sum(x["hired"] for x in r["schools"]), -len(r["schools"]),
                              r["company"].lower()))
-    user_id = int(s.id.split(":")[1]) if s.id.startswith("user:") else None
-    if user_id:
-        db.save_employer_view(conn, user_id, location, summary.overview, files, rows)
+    if s.search_id:
+        db.save_search_employers(conn, s.search_id, summary.overview, files, rows)
+    _action(s, {"type": "open_tab", "tab": "employers", "label": "Open the employer table →"})
     per_school = ", ".join(f"{short_school(n)}: {k} ({h} hired, {k - h} recruiting only)"
                            for n, k, h in db.report_school_counts(conn, files))
     per_industry = ", ".join(f"{g.industry} {len(g.companies)}" for g in summary.industries)
     multi = sum(1 for r in rows if len(r["schools"]) > 1)
     hired = sum(1 for r in rows if r["hired"])
-    return (f"Saved to the student's Employers table (tab next to Chat). Reports: {len(files)} ({per_school}).\n"
+    return (f"Saved to the student's Employers table (a button under your reply opens it). Reports used: {len(files)} "
+            f"({per_school}).\n"
             f"Some reports list companies that only recruit/network at the school, not confirmed hires.\n"
             f"{len(rows)} unique employers; {hired} confirmed to have hired grads; {len(picks)} top picks; "
             f"{multi} listed by more than one school.\n"
@@ -397,7 +469,7 @@ def mark_step(user_id: int, step: int) -> None:
     """For actions taken in the UI (e.g. + Track in the Employers table)."""
     session = _load_session(user_id)
     _done(session, step)
-    db.save_prefs(db.connect(), user_id, session.country, session.city, session.target_roles, session.stage)
+    db.update_search(db.connect(), session.search_id, session.country, session.city, session.stage)
 
 
 def _fmt_research(r: CompanyResearch) -> str:
@@ -443,6 +515,13 @@ async def research_companies(ctx: RunContext[Session], companies: list[str], que
     if any(c in s.research for c in companies):
         _done(s, 4)
     lines = [_fmt_research(s.research[c]) for c in companies if c in s.research]
+    tracked = {r[0].lower() for r in db.tracker_rows(conn, s.id)}
+    untracked = [c for c in companies if c in s.research and c.lower() not in tracked]
+    if untracked:
+        _action(s, {"type": "track", "companies": untracked,
+                    "label": f"Add {'these ' + str(len(untracked)) if len(untracked) > 1 else untracked[0]} to my tracker"})
+    else:
+        _action(s, {"type": "open_tab", "tab": "tracker", "label": "Open my tracker →"})
     head = f"Researched {len(results)} new, {len(companies) - len(todo)} cached."
     return head + "\n" + "\n".join(lines) + (f"\nFailed: {', '.join(errors)}" if errors else "")
 
@@ -481,6 +560,7 @@ def add_to_tracker(ctx: RunContext[Session], companies: list[str]) -> str:
             have += 1
     if have:
         _done(s, 5)
+        _action(s, {"type": "open_tab", "tab": "tracker", "label": "Open my tracker →"})
     msg = f"Added {len(added)}: {', '.join(added) or 'none'}. Tracker has {have}/{db.TRACKER_MAX}."
     if skipped:
         msg += f" Not added (tracker full): {', '.join(skipped)}."
@@ -536,6 +616,7 @@ async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> s
             db.set_tracker_careers_url(conn, s.id, company, scan.careers_url)
     if scans or len(todo) < len(tracked):
         _done(s, 6)
+        _action(s, {"type": "open_tab", "tab": "tracker", "label": "See jobs in my tracker →"})
     return (f"Checked {len(scans)} companies ({len(tracked) - len(todo)} checked in last 24h, skipped); "
             f"{new_total} new postings.\n" + _postings_report(conn, s) + (f"\nFailed: {', '.join(errors)}" if errors else ""))
 

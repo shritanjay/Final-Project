@@ -184,3 +184,25 @@ written to `logs/outbox/*.eml`** so everything works locally.
 (chat + sidebar), `Chat.tsx` (markdown replies, PDF upload, starter prompts, new chat), `Sidebar.tsx`
 (location & roles, tracker with status dropdown/remove, open roles with level tags and "location matched after hire"),
 `styles.css` (palette: cream `#f6f0e6`, sand `#e4d7c3`, espresso `#3b2f25`, terracotta `#b4643c`, olive `#6e7b4f`).
+
+## Saved searches
+Each location is its own **saved search** (`searches` table): location, guided-path progress, chat history (with its
+action buttons) and employer table. The tracker is keyed per search (`tracker.student = "search:<id>"`).
+- Top-bar **search switcher**: switch between searches, start **+ New search**, delete one (two-click confirm).
+- Naming a different place in chat starts a new saved search for it and keeps the old one.
+- *New chat* clears only the open search's conversation; *Start a new search* opens a fresh search (old one kept).
+- Existing users are migrated automatically on first load (their single search becomes a saved search).
+- API: `GET/POST /api/searches`, `POST /api/searches/{id}/activate`, `DELETE /api/searches/{id}`.
+
+## Chat action buttons
+Tools attach buttons to the boss's reply (`Session.turn_actions`, saved per message in `searches.actions`):
+**Open the employer table →**, **Add these N to my tracker**, **Open my tracker →**, **See jobs in my tracker →**,
+**Yes, download and extract employers**. After the reports step the boss explains what it did ("Here's what I did":
+the 3 schools, how many employers / confirmed hires, top industries) and asks the student to build a target list.
+
+## Tracker tab
+`GET /api/tracker/details`: one row per tracked company with status (editable), careers page, research summary
+(salary from report tables, visa, MBA roles, offices, recruiting) and its open early-career roles; rows expand for
+details. Buttons: **Check for new jobs**, **Research N missing**. The Employers table's selection bar offers
+**Research & track**, **Research** or **Track**. UI polish: tab/message transitions, animated progress bar,
+pulsing current step, and a "Step N done ✓" banner.

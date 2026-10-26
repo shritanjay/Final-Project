@@ -1,20 +1,21 @@
 import { useMemo, useState } from "react";
-import { EmployerView, TrackerRow } from "../api";
+import { EmployerView } from "../api";
 import { NextAction } from "../nextStep";
 
 type SortKey = "company" | "industry" | "schools";
 type Props = {
   view: EmployerView | null;
-  tracker: TrackerRow[];
+  tracker: { company: string }[];
   onTrack: (companies: string[]) => Promise<string>;
   onResearch: (companies: string[]) => void;
+  onResearchAndTrack: (companies: string[]) => Promise<string>;
   next: NextAction | null;
   onNext: (a: NextAction) => void;
 };
 
 const PAGE = 60;
 
-export default function EmployersTable({ view, tracker, onTrack, onResearch, next, onNext }: Props) {
+export default function EmployersTable({ view, tracker, onTrack, onResearch, onResearchAndTrack, next, onNext }: Props) {
   const [topOnly, setTopOnly] = useState(true);
   const [query, setQuery] = useState("");
   const [industries, setIndustries] = useState<Set<string>>(new Set());
@@ -243,10 +244,12 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch, nex
       {selected.size > 0 && (
         <div className="selbar">
           <strong>{selected.size} selected</strong>
-          <button className="btn btn-primary" onClick={() => (onResearch([...selected]), setSelected(new Set()))}>
-            Research selected
+          <button className="btn btn-primary" onClick={() => (onResearchAndTrack([...selected]), setSelected(new Set()))}
+            title="Add to your tracker and research them">
+            Research &amp; track
           </button>
-          <button className="btn btn-ghost" onClick={() => track([...selected])}>Add to tracker</button>
+          <button className="btn btn-ghost" onClick={() => (onResearch([...selected]), setSelected(new Set()))}>Research</button>
+          <button className="btn btn-ghost" onClick={() => track([...selected])}>Track</button>
           <button className="link" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       )}

@@ -133,6 +133,21 @@ CREATE TABLE IF NOT EXISTS employer_views (
     rows TEXT NOT NULL,   -- JSON list of employer rows for the UI table
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS searches (  -- one saved search per location; a user can have several
+    id INTEGER PRIMARY KEY AUTOINCREMENT,  -- AUTOINCREMENT: ids are never reused
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    country TEXT,
+    city TEXT,
+    stage INTEGER NOT NULL DEFAULT 0,      -- bitmask of completed guided-path steps
+    messages TEXT,                         -- PydanticAI chat history JSON
+    actions TEXT NOT NULL DEFAULT '{}',    -- {transcript index: [action buttons]} for assistant messages
+    emp_overview TEXT,
+    emp_files TEXT,
+    emp_rows TEXT,                         -- employer table rows JSON
+    emp_created_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS tracker (
     id INTEGER PRIMARY KEY,
     student TEXT NOT NULL,
@@ -161,6 +176,7 @@ MIGRATIONS = [  # columns added after tables were first created
     "ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE user_prefs ADD COLUMN stage INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE employers ADD COLUMN evidence TEXT NOT NULL DEFAULT 'hired'",
+    "ALTER TABLE user_prefs ADD COLUMN active_search INTEGER",
 ]
 
 
@@ -542,3 +558,137 @@ def user_stamp(conn: sqlite3.Connection, user_id: int) -> str | None:
     """Identifies one specific account even if SQLite later reuses its id."""
     row = conn.execute("SELECT created_at, email FROM users WHERE id = ?", (user_id,)).fetchone()
     return f"{user_id}:{row[0]}:{row[1]}" if row else None
+
+
+
+# ---------- saved searches ----------
+# Everything a student builds for one location lives in a search: location, progress, chat, employer table.
+# The tracker is keyed by scope(search id). user_prefs.active_search remembers which one is open.
+
+def scope(search_id: int) -> str:
+    """Tracker key for a search."""
+    return f"search:{search_id}"
+
+
+def _search_label(country: str | None, city: str | None) -> str:
+    return f"{city + ', ' if city else ''}{country}" if country else "New search"
+
+
+def create_search(conn: sqlite3.Connection, user_id: int, country: str | None = None, city: str | None = None,
+                  stage: int = 0) -> int:
+    with conn:
+        sid = conn.execute("INSERT INTO searches (user_id, country, city, stage) VALUES (?, ?, ?, ?)",
+                           (user_id, country, city, stage)).lastrowid
+        conn.execute("INSERT INTO user_prefs (user_id, active_search) VALUES (?, ?) "
+                     "ON CONFLICT (user_id) DO UPDATE SET active_search = excluded.active_search", (user_id, sid))
+    return sid
+
+
+def _migrate_legacy(conn: sqlite3.Connection, user_id: int) -> int:
+    """First load after saved searches were added: move the user's single search into a saved search."""
+    country, city, _, stage = get_prefs(conn, user_id)
+    sid = create_search(conn, user_id, country, city, stage)
+    with conn:
+        row = conn.execute("SELECT messages FROM chat_history WHERE user_id = ?", (user_id,)).fetchone()
+        if row:
+            conn.execute("UPDATE searches SET messages = ? WHERE id = ?", (row[0], sid))
+        view = conn.execute("SELECT location, overview, files, rows, created_at FROM employer_views WHERE user_id = ?",
+                            (user_id,)).fetchone()
+        if view:
+            conn.execute("UPDATE searches SET emp_overview = ?, emp_files = ?, emp_rows = ?, emp_created_at = ? WHERE id = ?",
+                         (view[1], view[2], view[3], view[4], sid))
+        conn.execute("UPDATE tracker SET student = ? WHERE student = ?", (scope(sid), f"user:{user_id}"))
+    return sid
+
+
+def active_search_id(conn: sqlite3.Connection, user_id: int) -> int:
+    """The search the user has open (creating or migrating one if needed)."""
+    row = conn.execute(
+        """SELECT s.id FROM user_prefs p JOIN searches s ON s.id = p.active_search AND s.user_id = p.user_id
+           WHERE p.user_id = ?""", (user_id,)).fetchone()
+    if row:
+        return row[0]
+    latest = conn.execute("SELECT id FROM searches WHERE user_id = ? ORDER BY updated_at DESC, id DESC",
+                          (user_id,)).fetchone()
+    if latest:
+        set_active_search(conn, user_id, latest[0])
+        return latest[0]
+    return _migrate_legacy(conn, user_id)
+
+
+def set_active_search(conn: sqlite3.Connection, user_id: int, search_id: int) -> bool:
+    if not conn.execute("SELECT 1 FROM searches WHERE id = ? AND user_id = ?", (search_id, user_id)).fetchone():
+        return False
+    with conn:
+        conn.execute("INSERT INTO user_prefs (user_id, active_search) VALUES (?, ?) "
+                     "ON CONFLICT (user_id) DO UPDATE SET active_search = excluded.active_search", (user_id, search_id))
+    return True
+
+
+def get_search(conn: sqlite3.Connection, search_id: int) -> dict:
+    r = conn.execute("SELECT id, country, city, stage, messages, actions FROM searches WHERE id = ?", (search_id,)).fetchone()
+    return {"id": r[0], "country": r[1], "city": r[2], "stage": r[3], "messages": r[4], "actions": json.loads(r[5] or "{}")}
+
+
+def list_searches(conn: sqlite3.Connection, user_id: int) -> list[dict]:
+    rows = conn.execute(
+        """SELECT s.id, s.country, s.city, s.stage, s.updated_at,
+                  (SELECT COUNT(*) FROM tracker t WHERE t.student = 'search:' || s.id)
+           FROM searches s WHERE s.user_id = ? ORDER BY s.updated_at DESC, s.id DESC""", (user_id,)).fetchall()
+    return [{"id": r[0], "country": r[1], "city": r[2], "label": _search_label(r[1], r[2]), "stage": r[3],
+             "updated_at": r[4], "tracked": r[5]} for r in rows]
+
+
+def update_search(conn: sqlite3.Connection, search_id: int, country: str | None, city: str | None, stage: int) -> None:
+    with conn:
+        conn.execute("UPDATE searches SET country = ?, city = ?, stage = ?, updated_at = datetime('now') WHERE id = ?",
+                     (country, city, stage, search_id))
+
+
+def save_search_chat(conn: sqlite3.Connection, search_id: int, messages_json: str | None, actions: dict) -> None:
+    with conn:
+        conn.execute("UPDATE searches SET messages = ?, actions = ?, updated_at = datetime('now') WHERE id = ?",
+                     (messages_json, json.dumps(actions), search_id))
+
+
+def save_search_employers(conn: sqlite3.Connection, search_id: int, overview: str, files: list[str], rows: list[dict]) -> None:
+    with conn:
+        conn.execute("""UPDATE searches SET emp_overview = ?, emp_files = ?, emp_rows = ?, emp_created_at = datetime('now'),
+                        updated_at = datetime('now') WHERE id = ?""", (overview, json.dumps(files), json.dumps(rows), search_id))
+
+
+def get_search_employers(conn: sqlite3.Connection, search_id: int) -> dict | None:
+    r = conn.execute("SELECT country, city, emp_overview, emp_files, emp_rows, emp_created_at FROM searches WHERE id = ?",
+                     (search_id,)).fetchone()
+    if not r or not r[4]:
+        return None
+    return {"location": r[1] or r[0], "overview": r[2], "files": json.loads(r[3]), "rows": json.loads(r[4]), "created_at": r[5]}
+
+
+def delete_search(conn: sqlite3.Connection, user_id: int, search_id: int) -> bool:
+    with conn:
+        n = conn.execute("DELETE FROM searches WHERE id = ? AND user_id = ?", (search_id, user_id)).rowcount
+        conn.execute("DELETE FROM tracker WHERE student = ?", (scope(search_id),))
+    return bool(n)
+
+
+def latest_research(conn: sqlite3.Connection, company: str, country: str) -> CompanyResearch | None:
+    row = conn.execute("SELECT data FROM company_research WHERE lower(company) = lower(?) AND country = ? "
+                       "ORDER BY checked_at DESC", (company, country)).fetchone()
+    return CompanyResearch.model_validate_json(row[0]) if row else None
+
+
+def postings_by_company(conn: sqlite3.Connection, company: str, location_key: str) -> list[dict]:
+    cols = ("title", "location", "level", "url", "first_seen", "location_flexible")
+    return [dict(zip(cols, r)) for r in conn.execute(
+        """SELECT title, COALESCE(location, ''), level, url, date(first_seen), location_flexible FROM job_postings
+           WHERE company = ? AND location_key = ? AND active = 1
+           ORDER BY CASE level WHEN 'mba' THEN 0 WHEN 'internship' THEN 1 ELSE 2 END, title""",
+        (company, location_key))]
+
+
+def last_scan(conn: sqlite3.Connection, company: str, location_key: str) -> tuple[str | None, str | None]:
+    """(note, scanned_at) of the latest job-posting check for a company in a location."""
+    row = conn.execute("SELECT note, scanned_at FROM posting_scans WHERE company = ? AND location_key = ?",
+                       (company, location_key)).fetchone()
+    return (row[0], row[1]) if row else (None, None)

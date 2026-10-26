@@ -50,10 +50,21 @@ class ChatRequest(BaseModel):
     message: str
 
 
+def open_search(user: User) -> tuple[int, str, dict]:
+    """(search id, tracker scope key, search row) of the user's open search."""
+    conn = db.connect()
+    sid = db.active_search_id(conn, user.id)
+    return sid, db.scope(sid), db.get_search(conn, sid)
+
+
+def location_key(search: dict) -> str:
+    return f"{search['city'] + ', ' if search['city'] else ''}{search['country']}"
+
+
 class ChatResponse(BaseModel):
     answer: str
     country: str | None
-    report_source: str | None
+    actions: list[dict] = []  # buttons to show under the reply
 
 
 @app.get("/api/health")
@@ -126,16 +137,16 @@ def reset_password(body: ResetBody):
 @app.get("/api/me")
 def me(user: User = Depends(current_user)):
     conn = db.connect()
-    country, city, roles, stage = db.get_prefs(conn, user.id)
-    return {"email": user.email, "email_verified": auth.is_verified(conn, user.id),
-            "country": country, "city": city, "target_roles": roles, "steps": boss.STEPS,
-            "steps_done": boss.steps_done(stage), "next_step": boss.next_step(stage)}
+    sid, _, search = open_search(user)
+    return {"email": user.email, "email_verified": auth.is_verified(conn, user.id), "search_id": sid,
+            "country": search["country"], "city": search["city"], "steps": boss.STEPS,
+            "steps_done": boss.steps_done(search["stage"]), "next_step": boss.next_step(search["stage"])}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, user: User = Depends(current_user)):
-    session, answer = await boss.chat(user.id, body.message)
-    return ChatResponse(answer=answer, country=session.country, report_source=session.report_source)
+    session, answer, actions = await boss.chat(user.id, body.message)
+    return ChatResponse(answer=answer, country=session.country, actions=actions)
 
 
 @app.get("/api/chat/history")
@@ -144,14 +155,40 @@ def chat_history(user: User = Depends(current_user)):
 
 
 class NewChat(BaseModel):
-    new_search: bool = False  # also reset location, roles, progress, employer table
-    clear_tracker: bool = False
+    new_search: bool = False  # open a brand-new saved search (the current one is kept)
 
 
 @app.post("/api/chat/new")
 def chat_new(body: NewChat | None = None, user: User = Depends(current_user)):
-    body = body or NewChat()
-    boss.new_chat(user.id, body.new_search, body.clear_tracker)
+    boss.new_chat(user.id, (body or NewChat()).new_search)
+    return {"ok": True}
+
+
+@app.get("/api/searches")
+def searches(user: User = Depends(current_user)):
+    conn = db.connect()
+    active = db.active_search_id(conn, user.id)
+    return [{**x, "active": x["id"] == active, "steps_done": len(boss.steps_done(x["stage"]))}
+            for x in db.list_searches(conn, user.id)]
+
+
+@app.post("/api/searches")
+def search_new(user: User = Depends(current_user)):
+    boss.new_chat(user.id, new_search=True)
+    return {"ok": True}
+
+
+@app.post("/api/searches/{search_id}/activate")
+def search_activate(search_id: int, user: User = Depends(current_user)):
+    if not boss.switch_search(user.id, search_id):
+        raise HTTPException(404, "Search not found.")
+    return {"ok": True}
+
+
+@app.delete("/api/searches/{search_id}")
+def search_delete(search_id: int, user: User = Depends(current_user)):
+    if not boss.delete_search(user.id, search_id):
+        raise HTTPException(404, "Search not found.")
     return {"ok": True}
 
 
@@ -171,13 +208,13 @@ async def upload(file: UploadFile, user: User = Depends(current_user)):
 @app.get("/api/tracker")
 def tracker(user: User = Depends(current_user)):
     cols = ("company", "status", "careers_url", "notes", "updated")
-    return [dict(zip(cols, r)) for r in db.tracker_rows(db.connect(), f"user:{user.id}")]
+    return [dict(zip(cols, r)) for r in db.tracker_rows(db.connect(), open_search(user)[1])]
 
 
 @app.get("/api/employers")
 def employers(user: User = Depends(current_user)):
-    """The student's employer table (saved by the Report Summarizer), or null if not built yet."""
-    return db.get_employer_view(db.connect(), user.id)
+    """The open search's employer table (saved by the Report Summarizer), or null if not built yet."""
+    return db.get_search_employers(db.connect(), open_search(user)[0])
 
 
 class TrackerAdd(BaseModel):
@@ -186,7 +223,7 @@ class TrackerAdd(BaseModel):
 
 @app.post("/api/tracker")
 def tracker_add(body: TrackerAdd, user: User = Depends(current_user)):
-    conn, student = db.connect(), f"user:{user.id}"
+    conn, student = db.connect(), open_search(user)[1]
     have = len(db.tracker_rows(conn, student))
     added, full = [], []
     for c in body.companies:
@@ -208,25 +245,51 @@ class TrackerUpdate(BaseModel):
 
 @app.patch("/api/tracker")
 def tracker_update(body: TrackerUpdate, user: User = Depends(current_user)):
-    if not db.tracker_update(db.connect(), f"user:{user.id}", body.company, body.status, body.notes):
+    if not db.tracker_update(db.connect(), open_search(user)[1], body.company, body.status, body.notes):
         raise HTTPException(404, "Not in your tracker.")
     return {"ok": True}
 
 
 @app.delete("/api/tracker/{company}")
 def tracker_delete(company: str, user: User = Depends(current_user)):
-    if not db.tracker_remove(db.connect(), f"user:{user.id}", company):
+    if not db.tracker_remove(db.connect(), open_search(user)[1], company):
         raise HTTPException(404, "Not in your tracker.")
     return {"ok": True}
 
 
 @app.get("/api/postings")
 def postings(user: User = Depends(current_user)):
-    """Active postings for the user's tracked companies in their saved city/country."""
-    country, city, _, _ = db.get_prefs(db.connect(), user.id)
-    location = f"{city + ', ' if city else ''}{country}"
+    """Active postings for the open search's tracked companies in its location."""
+    _, key, search = open_search(user)
     cols = ("company", "title", "location", "level", "url", "first_seen", "location_flexible")
-    return [dict(zip(cols, r)) for r in db.postings_for_student(db.connect(), f"user:{user.id}", location)]
+    return [dict(zip(cols, r)) for r in db.postings_for_student(db.connect(), key, location_key(search))]
+
+
+@app.get("/api/tracker/details")
+def tracker_details(user: User = Depends(current_user)):
+    """Tracker table: each tracked company with status, careers page, research summary and its open jobs."""
+    from backend.company_researcher import apply_report_salary
+    conn = db.connect()
+    _, key, search = open_search(user)
+    loc = location_key(search)
+    out = []
+    for company, status, careers, notes, updated in db.tracker_rows(conn, key):
+        research = db.latest_research(conn, company, search["country"]) if search["country"] else None
+        summary = None
+        if research:
+            apply_report_salary(conn, research)
+            summary = {
+                "salary_low": research.salary_base_low, "salary_high": research.salary_base_high,
+                "currency": research.salary_currency, "salary_note": research.salary_note,
+                "visa": research.visa_sponsorship, "roles": research.mba_roles[:4], "locations": research.locations[:4],
+                "recruiting": research.recruiting_notes,
+            }
+            careers = careers if careers != "-" else (research.careers_url or "-")
+        note, scanned = db.last_scan(conn, company, loc)
+        out.append({"company": company, "status": status, "careers_url": careers, "notes": notes, "updated": updated,
+                    "research": summary, "jobs": db.postings_by_company(conn, company, loc),
+                    "jobs_checked": scanned, "jobs_note": note})
+    return {"location": loc if search["country"] else None, "rows": out}
 
 
 # Serve the built React app (npm run build -> frontend/dist) from the same server, if present.
