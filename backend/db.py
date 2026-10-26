@@ -5,7 +5,9 @@ from pathlib import Path
 
 from backend.models import CompanyResearch, GeoCheck, PostingScan, SalaryTable, MBAProgram, ProgramList, ReportExtraction
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "employers.db"
+DATA = Path(__file__).resolve().parent.parent / "data"
+DB_PATH = DATA / "employers.db"   # working database (created on first run, not in git)
+DEMO_DB = DATA / "demo.db"        # small test dataset in the repo: Toronto reports already analyzed, no user data
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS reports (
@@ -182,6 +184,9 @@ MIGRATIONS = [  # columns added after tables were first created
 
 
 def connect() -> sqlite3.Connection:
+    if not DB_PATH.exists() and DEMO_DB.exists():
+        import shutil
+        shutil.copy(DEMO_DB, DB_PATH)  # first run from a fresh clone: start from the demo data
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)

@@ -118,3 +118,6 @@ the email verification thing doesnt actually work is that somethiung you can do
 
 ## 31. Keep email as is
 okay for now what is there works
+
+## 32. Check project requirements
+now that it all works i need you to look at this that the professor gave us:https://zlisto.github.io/mgt_409_fa26/project_requirements.html. Check for the criteria and see what needs to be added or removed

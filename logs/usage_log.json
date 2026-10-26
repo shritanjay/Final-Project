@@ -1406,5 +1406,35 @@
     "cached_input_tokens": 0,
     "output_tokens": 825,
     "web_searches": 5
+  },
+  {
+    "time": "2026-10-26T01:25:08+00:00",
+    "label": "job_scout:PepsiCo Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 21683,
+    "cached_input_tokens": 4927,
+    "output_tokens": 791,
+    "web_searches": 8
+  },
+  {
+    "time": "2026-10-26T01:25:28+00:00",
+    "label": "job_scout:RSM Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 44142,
+    "cached_input_tokens": 4927,
+    "output_tokens": 2164,
+    "web_searches": 20
+  },
+  {
+    "time": "2026-10-26T01:25:37+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 11817,
+    "cached_input_tokens": 0,
+    "output_tokens": 913,
+    "web_searches": 0
   }
 ]
