@@ -130,3 +130,6 @@ first lets submit to Github what we have?
 
 ## 35. Check GitHub push
 check if i did it properly
+
+## 36. Repo URL in report
+now in share with me the HTML of report - put your github repo url in the report so we can clone it

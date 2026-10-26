@@ -129,7 +129,11 @@ code{background:var(--linen);padding:1px 5px;border-radius:5px;font-size:13px}
 body = f"""
 <h1>Career <em class="t">Scout</em></h1>
 <p class="sub">Shritanjay Bhatia · MGT 409 Final Project · Fall 2026</p>
-<p class="links">GitHub: <a href="{REPO}">{REPO}</a> · Live app: runs locally (see README; one command, ~1 minute)</p>
+<p class="links">GitHub: <a href="{REPO}">{REPO}</a> · Live app: runs locally (one command, ~1 minute)</p>
+<pre>git clone {REPO}.git
+cd Final-Project
+./run.sh            # Windows: run.bat   (.env with PORTKEY_API_KEY here or one folder up)
+# then open http://localhost:8000 and try "Toronto, Canada"</pre>
 <p class="pitch">Career Scout tells an MBA student who wants to work in a new city which companies actually hire MBAs
 there: it reads the employment reports of that city's top MBA programs, turns them into a searchable employer
 list, researches the companies the student picks, and tracks their careers pages for internship and MBA openings.</p>
