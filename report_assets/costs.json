@@ -1,0 +1,127 @@
+{
+ "prices": {
+  "input": 0.2,
+  "cached": 0.02,
+  "output": 0.5,
+  "search_per_1k": 10
+ },
+ "per_agent": {
+  "boss": {
+   "calls": 71,
+   "input": 6926,
+   "cached": 2981,
+   "output": 352,
+   "searches": 0.0,
+   "token_cost": 0.0010247084507042253,
+   "total_cost": 0.0010247084507042253
+  },
+  "company_researcher": {
+   "calls": 19,
+   "input": 18764,
+   "cached": 3800,
+   "output": 989,
+   "searches": 4.8,
+   "token_cost": 0.0035631842105263156,
+   "total_cost": 0.05145792105263158
+  },
+  "job_scout": {
+   "calls": 18,
+   "input": 20071,
+   "cached": 3211,
+   "output": 1097,
+   "searches": 6.4,
+   "token_cost": 0.003984602222222223,
+   "total_cost": 0.06842904666666666
+  },
+  "report_finder": {
+   "calls": 13,
+   "input": 14159,
+   "cached": 3506,
+   "output": 426,
+   "searches": 3.8,
+   "token_cost": 0.002413673846153846,
+   "total_cost": 0.04010598153846154
+  },
+  "report_summarizer": {
+   "calls": 13,
+   "input": 20092,
+   "cached": 0,
+   "output": 4106,
+   "searches": 0.0,
+   "token_cost": 0.006071646153846154,
+   "total_cost": 0.006071646153846154
+  },
+  "report_analyst": {
+   "calls": 8,
+   "input": 4742,
+   "cached": 0,
+   "output": 6381,
+   "searches": 0.0,
+   "token_cost": 0.0041391250000000004,
+   "total_cost": 0.0041391250000000004
+  },
+  "salary_extractor": {
+   "calls": 4,
+   "input": 1529,
+   "cached": 0,
+   "output": 1426,
+   "searches": 0.0,
+   "token_cost": 0.001018725,
+   "total_cost": 0.001018725
+  },
+  "geo_verifier": {
+   "calls": 3,
+   "input": 18269,
+   "cached": 0,
+   "output": 531,
+   "searches": 6.0,
+   "token_cost": 0.0039192,
+   "total_cost": 0.0639192
+  },
+  "program_scout": {
+   "calls": 1,
+   "input": 20061,
+   "cached": 0,
+   "output": 2059,
+   "searches": 4.0,
+   "token_cost": 0.0050417000000000005,
+   "total_cost": 0.045041700000000004
+  },
+  "company_ranker": {
+   "calls": 1,
+   "input": 1064,
+   "cached": 0,
+   "output": 322,
+   "searches": 0.0,
+   "token_cost": 0.0003738,
+   "total_cost": 0.0003738
+  }
+ },
+ "run": {
+  "boss turns (15)": 0.01537062676056338,
+  "report finder (1)": 0.04010598153846154,
+  "summarizer (1)": 0.006071646153846154,
+  "research 10 companies": 0.5145792105263158,
+  "job check 8 companies": 0.5474323733333333
+ },
+ "run_total": 1.1235598383125203,
+ "run_tokens": {
+  "input": 486349,
+  "cached": 111909,
+  "output": 28478
+ },
+ "city": {
+  "program scout": 0.045041700000000004,
+  "report finder": 0.04010598153846154,
+  "3 report analyses": 0.012417375000000001,
+  "3 salary scans": 0.0030561750000000004,
+  "summarizer": 0.006071646153846154
+ },
+ "city_total": 0.1066928776923077,
+ "month": 2.7812275850730837,
+ "scale": {
+  "100": 279.18968728423147,
+  "10000": 27828.27978238468
+ },
+ "log_calls": 152
+}

@@ -1,0 +1,4 @@
+[
+  {"file": "02_step3_chat.png", "navigate": "http://127.0.0.1:8000/", "js": "await new Promise(r=>setTimeout(r,1500)); const m=[...document.querySelectorAll('.msg-wrap-assistant')].find(x=>x.innerText.includes('what I did')); const log=document.querySelector('.chat-log'); log.scrollTop = m.offsetTop - log.offsetTop - 20;", "wait": 900},
+  {"file": "05_research_chat.png", "js": "const ms=[...document.querySelectorAll('.msg-wrap-assistant')]; const m=ms.find(x=>x.innerText.toLowerCase().includes('salary')) || ms[ms.length-2]; const log=document.querySelector('.chat-log'); log.scrollTop = m.offsetTop - log.offsetTop - 20;", "wait": 900}
+]

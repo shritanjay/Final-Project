@@ -1,0 +1,94 @@
+{
+ "turns": [
+  {
+   "user": "Toronto, Canada",
+   "reply": "Toronto, Canada is set.\n\n**Next:** Choose how to get MBA employment reports: should I find reports from top programs in Toronto, or will you upload the PDFs yourself?",
+   "actions": [],
+   "seconds": 2.6,
+   "calls": [
+    {
+     "label": "boss",
+     "input_tokens": 4982,
+     "cached_input_tokens": 0,
+     "output_tokens": 78,
+     "web_searches": 0
+    }
+   ]
+  },
+  {
+   "user": "Yes, find them for me please",
+   "reply": "**Here's what I did**\n1. Found employment reports for 3 MBA programs whose graduates get jobs in Toronto: **Rotman**, **Schulich** and **Ivey** (London, Ontario\u2014outside Toronto).\n2. Read their employment reports and pulled out the employers that hire or recruit their MBAs: **1,281 unique companies**, **356 confirmed hires**.\n3. Grouped them by industry: Banking & Investment Management 26 \u00b7 Consulting 18 \u00b7 Consumer Goods & Retail 17 \u00b7 Technology 13 \u00b7 Healthcare & Life Sciences 7.\n\n**Your next step: build your target list.** Open the employer table with the button below, filter by industry or school, tick the companies you like, then press **Research**, **Track**, or **Research & track**.",
+   "actions": [
+    "Open the employer table \u2192"
+   ],
+   "seconds": 58.7,
+   "calls": [
+    {
+     "label": "report_finder:1 schools",
+     "input_tokens": 13132,
+     "cached_input_tokens": 4558,
+     "output_tokens": 377,
+     "web_searches": 4
+    },
+    {
+     "label": "report_summarizer:Toronto",
+     "input_tokens": 25803,
+     "cached_input_tokens": 0,
+     "output_tokens": 5009,
+     "web_searches": 0
+    },
+    {
+     "label": "boss",
+     "input_tokens": 15074,
+     "cached_input_tokens": 2642,
+     "output_tokens": 586,
+     "web_searches": 0
+    }
+   ]
+  },
+  {
+   "user": "I've added Amazon, Bain & Company, McKinsey & Company to my tracker. Please research them.",
+   "reply": "Research is ready for all three (the results were already cached). **Salary figures below are school-reported industry averages, not company-specific pay.** Visa sponsorship was listed as **unsure** for all three.\n\n| Company | Salary reference (CAD) | MBA roles | Locations | Recruiting timeline |\n|---|---:|---|---|---|\n| **Amazon** | Tech: **$77,167\u2013$119,000** across the three schools\u2019 reported ranges | Pathways Operations Manager; MBA leadership roles in vendor management, product strategy, supply chain, marketing, program management, finance and HR | Toronto, Vancouver, Victoria | Canada\u2019s 2027 Pathways posting covers starts between January and July 2027. Other MBA roles and application windows weren\u2019t confirmed as Canada-specific. |\n| **Bain & Company** | Consulting: **$85,667\u2013$140,738** | Consultant; Summer Associate MBA internship | Toronto, Montreal | Rotman\u2019s recruiting page lists a Summer Associate deadline of November 11, 2026; deadlines may vary by school. |\n| **McKinsey & Company** | Consulting: **$85,667\u2013$140,738** | Associate; Associate Intern MBA internship | Calgary, Montreal, Toronto, Vancouver | Deadlines vary by school and office; check McKinsey\u2019s live campus deadline tool. |\n\n**Next:** I can rank these by salary or by fit. Which would you prefer?",
+   "actions": [
+    "Open my tracker \u2192"
+   ],
+   "seconds": 12.4,
+   "calls": [
+    {
+     "label": "boss",
+     "input_tokens": 8887,
+     "cached_input_tokens": 0,
+     "output_tokens": 629,
+     "web_searches": 0
+    }
+   ]
+  },
+  {
+   "user": "Let's find job postings for my tracked companies.",
+   "reply": "The tracker search found **0 new postings**\u2014all three companies were checked within the last 24 hours, so their saved postings were reused.\n\n### Amazon\n- **MBA:** [2027 MBA Pathways Full-time Operations Manager](https://www.amazon.jobs/en/jobs/10525791/2027-mba-pathways-full-time-operations-manager-canada-wide-opportunities) \u2014 Canada-wide; **location matched after hire**.\n- **Internships:** [Area Manager Intern \u2013 Summer 2027](https://www.amazon.jobs/en/jobs/10493062/area-manager-intern-summer-2027-canada) \u2014 Canada-wide; location matched after hire. [ML Systems Software Development Engineer Intern](https://www.amazon.jobs/en/jobs/10538066/ml-systems-software-development-engineer-intern-annapurna-labs-2027) \u2014 Toronto. [Robotics Software Development Engineer Intern](https://www.amazon.jobs/en/jobs/3136815/robotics-software-development-engineer-intern-2026-toronto) \u2014 Toronto. [Software Development Engineer Intern \u2013 Summer 2027](https://www.amazon.jobs/en/jobs/10553947/software-development-engineer-intern-summer-2027-can) \u2014 Canada; Toronto among eligible locations.\n- **Early-career:** [Data Engineer](https://www.amazon.jobs/en/jobs/10559101/data-engineer-early-career-2027-can) \u2014 Toronto. [Software Development Engineer](https://www.amazon.jobs/en/jobs/10502743/software-development-engineer-early-career-2026) \u2014 Canada; Toronto among eligible locations.\n\n### Bain & Company\n- **MBA:** [Consultant](https://www.bain.com/careers/find-a-role/position/?jobid=10409) \u2014 Toronto. [Summer Associate](https://www.bain.com/careers/work-with-us/internships-programs/summer-associate/) \u2014 Toronto.\n- **Early-career:** [Associate Consultant](https://www.bain.com/careers/find-a-role/position/?jobid=10397) \u2014 Toronto.\n\n### McKinsey & Company\n- **MBA:** [Associate Intern](https://www.mckinsey.com/careers/search-jobs/jobs/associateintern-14918) \u2014 Toronto.\n- **Early-career:** [Business Analyst](https://www.mckinsey.com/careers/search-jobs/jobs/businessanalyst-15136) \u2014 Toronto.\n\nCheck back every few days to look for new postings.",
+   "actions": [
+    "See jobs in my tracker \u2192"
+   ],
+   "seconds": 10.6,
+   "calls": [
+    {
+     "label": "boss",
+     "input_tokens": 11771,
+     "cached_input_tokens": 4904,
+     "output_tokens": 717,
+     "web_searches": 0
+    }
+   ]
+  }
+ ],
+ "boss_tools": [
+  "set_country",
+  "set_report_source",
+  "research_programs",
+  "find_reports",
+  "analyze_reports",
+  "summarize_employers",
+  "research_companies",
+  "check_job_postings"
+ ]
+}

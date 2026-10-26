@@ -14,3 +14,5 @@ logs/outbox/
 frontend/node_modules/
 logs/last_guided.txt
 data/employers.db
+report_assets/*.png
+report_assets/demo_token.txt
