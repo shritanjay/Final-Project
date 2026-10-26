@@ -14,7 +14,7 @@ OUTBOX = Path(__file__).resolve().parent.parent / "logs" / "outbox"
 
 
 def frontend_url() -> str:
-    return os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    return os.getenv("FRONTEND_URL", "http://localhost:8000").rstrip("/")
 
 
 def send_email(to: str, subject: str, body: str) -> str:

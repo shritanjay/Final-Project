@@ -1,8 +1,11 @@
-# MGT 409 final project: MBA employer finder backend
-pydantic-ai-slim[openai]>=1.0
-fastapi
-uvicorn[standard]
-python-dotenv
-pypdf
-python-multipart
-httpx
+# Career Scout (MGT 409 final project). Python 3.11+.
+pydantic-ai-slim[openai]==2.56.0
+openai==3.31.0
+pydantic==2.14.1
+fastapi==0.143.2
+uvicorn[standard]==0.54.0
+python-dotenv==1.2.4
+python-multipart==0.0.32
+pypdf==6.20.1
+httpx==0.28.1
+pytest==9.1.1

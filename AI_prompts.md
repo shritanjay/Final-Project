@@ -121,3 +121,6 @@ okay for now what is there works
 
 ## 32. Check project requirements
 now that it all works i need you to look at this that the professor gave us:https://zlisto.github.io/mgt_409_fa26/project_requirements.html. Check for the criteria and see what needs to be added or removed
+
+## 33. Repo cleanup + report + slides
+Yes. Start with the repo cleanup (remove personal data from git history, demo database, one-command setup, committed frontend build, .env.example, safety tests), then build report.html and slides.html with real numbers and screenshots.
