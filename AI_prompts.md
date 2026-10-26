@@ -124,3 +124,6 @@ now that it all works i need you to look at this that the professor gave us:http
 
 ## 33. Repo cleanup + report + slides
 Yes. Start with the repo cleanup (remove personal data from git history, demo database, one-command setup, committed frontend build, .env.example, safety tests), then build report.html and slides.html with real numbers and screenshots.
+
+## 34. Push to GitHub
+first lets submit to Github what we have?
