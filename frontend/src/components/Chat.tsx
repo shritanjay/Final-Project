@@ -10,15 +10,24 @@ Tell me the city and country, for example *"Berlin, Germany"*, or just a country
 From there I'll walk you through it step by step: find the employment reports of the top MBA programs in that city, pull out the companies that hire their grads, research the ones you like, and track their job postings.`;
 const RETURNING = ["Continue where I left off", "Check my tracked companies for new postings", "Show my tracker"];
 
-type ChatProps = { onReply: () => void; returning: boolean; outgoing?: { text: string; id: number } | null };
+type ChatProps = {
+  onReply: () => void;
+  onReset: () => void;
+  returning: boolean; // student already has a saved location
+  hasTracker: boolean;
+  outgoing?: { text: string; id: number } | null;
+};
 
-export default function Chat({ onReply, returning, outgoing }: ChatProps) {
+export default function Chat({ onReply, onReset, returning, hasTracker, outgoing }: ChatProps) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [clearTracker, setClearTracker] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     api.history().then(setMessages).catch(() => {});
@@ -65,10 +74,21 @@ export default function Chat({ onReply, returning, outgoing }: ChatProps) {
     if (saved.length) send(`I uploaded ${saved.join(", ")}. Please analyze ${saved.length > 1 ? "them" : "it"}.`);
   }
 
-  async function newChat() {
-    if (!confirm("Start a new conversation? Your tracker and saved settings stay.")) return;
-    await api.newChat();
-    setMessages([]);
+  async function reset(newSearch: boolean) {
+    setResetting(true);
+    setError("");
+    try {
+      await api.newChat({ new_search: newSearch, clear_tracker: newSearch && clearTracker });
+      setMessages([]);
+      setInput("");
+      setResetOpen(false);
+      setClearTracker(false);
+      onReset();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setResetting(false);
+    }
   }
 
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -85,7 +105,9 @@ export default function Chat({ onReply, returning, outgoing }: ChatProps) {
           <h2>Your career scout</h2>
           <p className="muted">Ask in plain words. I'll hand the work to the right specialist.</p>
         </div>
-        {messages.length > 0 && <button className="btn btn-ghost" onClick={newChat} disabled={busy}>New chat</button>}
+        {(messages.length > 0 || returning || hasTracker) && (
+          <button className="btn btn-ghost" onClick={() => setResetOpen(true)} disabled={busy}>New chat</button>
+        )}
       </div>
 
       <div className="chat-log">
@@ -123,6 +145,33 @@ export default function Chat({ onReply, returning, outgoing }: ChatProps) {
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
+
+      {resetOpen && (
+        <div className="modal-backdrop" onClick={() => !resetting && setResetOpen(false)}>
+          <div className="modal card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h3>Start fresh?</h3>
+            <div className="reset-options">
+              <button className="reset-option" onClick={() => reset(false)} disabled={resetting}>
+                <strong>New chat</strong>
+                <span>Clear the conversation. Keep your city, progress, employer table and tracker.</span>
+              </button>
+              <button className="reset-option primary" onClick={() => reset(true)} disabled={resetting}>
+                <strong>Start a new search</strong>
+                <span>Clear the conversation, city, target roles, progress and employer table, and pick a new place.</span>
+              </button>
+            </div>
+            {hasTracker && (
+              <label className="check">
+                <input type="checkbox" checked={clearTracker} onChange={(e) => setClearTracker(e.target.checked)} />
+                Also empty my tracker (only with a new search)
+              </label>
+            )}
+            <div className="modal-foot">
+              <button className="btn btn-ghost" onClick={() => setResetOpen(false)} disabled={resetting}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form className="composer" onSubmit={(e: FormEvent) => (e.preventDefault(), send(input))}>
         <input ref={fileRef} type="file" accept="application/pdf" multiple hidden onChange={(e) => upload(e.target.files)} />

@@ -97,3 +97,6 @@ Firstly you should get 3 per city. secondly i want a more user friendly view of 
 
 ## 24. Ivey as the third Toronto report
 Yes, download the Ivey Class of 2025 employment report, analyze it, and rebuild the Toronto employer table with all 3 schools.
+
+## 25. New chat / new search
+new chat is not working. Help to make it work. so that  i can reset the whole thing when enw chat is clicked. or alternatibe search is possible.

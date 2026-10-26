@@ -162,7 +162,9 @@ Students have accounts, so their tracker and settings are saved between visits (
 ## Chat history
 Saved per user in `chat_history` (full PydanticAI message list), so conversations survive logout and restarts.
 Only the last 10 user turns are sent to the model to keep token costs flat. `GET /api/chat/history` (UI transcript),
-`POST /api/chat/new` (start over; tracker and settings stay).
+`POST /api/chat/new` `{new_search, clear_tracker}`. The UI's **New chat** opens a dialog: *New chat* clears only the
+conversation; *Start a new search* also clears location, target roles, guided-path progress and the employer table
+(optionally the tracker too). Analyzed reports and cached research are shared and kept, so redoing a city is cheap.
 
 ## Email (verification + password reset)
 `backend/emailer.py` sends over SMTP; set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`,

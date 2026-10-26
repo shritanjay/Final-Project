@@ -314,9 +314,17 @@ def chat_transcript(user_id: int) -> list[dict]:
     return out
 
 
-def new_chat(user_id: int) -> None:
-    """Start a fresh conversation. Saved prefs, tracker and postings stay."""
-    db.clear_chat_history(db.connect(), user_id)
+def new_chat(user_id: int, new_search: bool = False, clear_tracker: bool = False) -> None:
+    """Start a fresh conversation.
+    new_search: also forget location, target roles, guided-path progress and the employer table (start over).
+    clear_tracker: also empty the tracker. Analyzed reports and cached research stay (shared, saves tokens)."""
+    conn = db.connect()
+    db.clear_chat_history(conn, user_id)
+    if new_search:
+        db.save_prefs(conn, user_id, None, None, [], 0)
+        db.clear_employer_view(conn, user_id)
+    if clear_tracker:
+        db.tracker_clear(conn, f"user:{user_id}")
     SESSIONS.pop(f"user:{user_id}", None)
 
 

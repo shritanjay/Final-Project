@@ -96,6 +96,23 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(180, 100, 60
 .banner { background: #f3e6c9; border-bottom: 1px solid #e6d3a8; color: #6b4f1d; padding: 9px 28px; font-size: 14px; }
 .workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; padding: 22px 28px; }
 
+/* Modal (New chat) */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(59, 47, 37, 0.35); display: grid; place-items: center; z-index: 20; padding: 16px; }
+.modal { width: min(480px, 100%); padding: 24px; display: grid; gap: 14px; }
+.modal h3 { font-size: 22px; }
+.reset-options { display: grid; gap: 10px; }
+.reset-option {
+  font: inherit; text-align: left; display: grid; gap: 3px; padding: 14px 16px; border-radius: 12px; cursor: pointer;
+  background: var(--cream); border: 1px solid var(--sand); color: var(--espresso);
+}
+.reset-option span { font-size: 13.5px; color: var(--muted); }
+.reset-option:hover:not(:disabled) { border-color: var(--wheat); background: #f8f1e6; }
+.reset-option.primary { border-color: var(--terracotta); }
+.reset-option.primary strong { color: var(--clay); }
+.reset-option:disabled { opacity: 0.6; cursor: wait; }
+.modal .check { margin-left: 0; font-weight: 500; }
+.modal-foot { display: flex; justify-content: flex-end; }
+
 /* Tabs */
 .main-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; gap: 12px; }
 .tabs { display: flex; gap: 6px; }

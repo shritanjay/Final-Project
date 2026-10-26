@@ -80,7 +80,17 @@ export default function Workspace({ onLogout }: { onLogout: () => void }) {
             </button>
           </nav>
           <div className={tab === "chat" ? "tab-pane" : "tab-pane hidden"}>
-            <Chat onReply={refresh} returning={(me?.steps_done.length ?? 0) > 0 || tracker.length > 0} outgoing={outgoing} />
+            <Chat
+              onReply={refresh}
+              onReset={() => {
+                setTab("chat");
+                lastTable.current = undefined; // don't auto-jump to a table on this refresh
+                refresh();
+              }}
+              returning={!!me?.country}
+              hasTracker={tracker.length > 0}
+              outgoing={outgoing}
+            />
           </div>
           <div className={tab === "employers" ? "tab-pane" : "tab-pane hidden"}>
             <EmployersTable view={employers} tracker={tracker} onTrack={track} onResearch={research} />

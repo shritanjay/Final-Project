@@ -526,3 +526,13 @@ def report_school_counts(conn: sqlite3.Connection, files: list[str]) -> list[tup
             WHERE r.file IN ({marks}) GROUP BY r.id ORDER BY 2 DESC""",
         files,
     ).fetchall()
+
+
+def clear_employer_view(conn: sqlite3.Connection, user_id: int) -> None:
+    with conn:
+        conn.execute("DELETE FROM employer_views WHERE user_id = ?", (user_id,))
+
+
+def tracker_clear(conn: sqlite3.Connection, student: str) -> None:
+    with conn:
+        conn.execute("DELETE FROM tracker WHERE student = ?", (student,))

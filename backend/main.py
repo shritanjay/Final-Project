@@ -143,9 +143,15 @@ def chat_history(user: User = Depends(current_user)):
     return boss.chat_transcript(user.id)
 
 
+class NewChat(BaseModel):
+    new_search: bool = False  # also reset location, roles, progress, employer table
+    clear_tracker: bool = False
+
+
 @app.post("/api/chat/new")
-def chat_new(user: User = Depends(current_user)):
-    boss.new_chat(user.id)
+def chat_new(body: NewChat | None = None, user: User = Depends(current_user)):
+    body = body or NewChat()
+    boss.new_chat(user.id, body.new_search, body.clear_tracker)
     return {"ok": True}
 
 
