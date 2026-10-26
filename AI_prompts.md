@@ -112,3 +112,9 @@ once it asks me to the location and i say yes get employment reports it should e
 
 ## 29. McKinsey Toronto posting missed
 for mckinsey your model couldnt find anything for toronto. i could: https://www.mckinsey.com/careers/search-jobs/jobs/associateintern-14918
+
+## 30. Email verification
+the email verification thing doesnt actually work is that somethiung you can do
+
+## 31. Keep email as is
+okay for now what is there works
