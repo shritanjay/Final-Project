@@ -100,3 +100,6 @@ Yes, download the Ivey Class of 2025 employment report, analyze it, and rebuild 
 
 ## 25. New chat / new search
 new chat is not working. Help to make it work. so that  i can reset the whole thing when enw chat is clicked. or alternatibe search is possible.
+
+## 26. Next-step button
+When I tried the search and when I did that, it showed me all the employers and I was able to select which employers I wanted to track. However, it doesn't after that have like a next button or anything that takes me to the next step, because then I get stuck at step 4 or 5 out of 6 . Can you help fix that?

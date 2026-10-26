@@ -228,6 +228,17 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(180, 100, 60
   width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center;
   font-size: 12px; font-weight: 700; border: 1px solid var(--sand); background: var(--cream); color: var(--muted);
 }
+.path-step { all: unset; display: flex; align-items: center; gap: 11px; width: 100%; cursor: pointer; }
+.path li:hover { background: var(--cream); border-radius: 10px; }
+.next-box { margin-top: 12px; display: grid; gap: 6px; }
+.next-btn { width: 100%; }
+.next-box p { margin: 0; text-align: center; }
+.next-bar {
+  position: sticky; bottom: 0; margin: 0 -20px; padding: 12px 20px; display: flex; align-items: center;
+  justify-content: space-between; gap: 14px; background: #f3eadb; border-top: 1px solid var(--sand); font-size: 14px;
+}
+.next-bar.subtle { justify-content: center; background: var(--cream); }
+.next-bar .btn { white-space: nowrap; }
 .path-done { color: var(--bark); }
 .path-done .path-dot { background: var(--olive); border-color: var(--olive); color: var(--paper); }
 .path-now { color: var(--espresso); font-weight: 600; background: var(--linen); border-radius: 10px; }

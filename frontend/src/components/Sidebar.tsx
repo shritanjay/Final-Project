@@ -1,8 +1,17 @@
 import { api, Me, Posting, STATUSES, Status, TrackerRow } from "../api";
+import { NextAction } from "../nextStep";
 
-type Props = { me: Me | null; tracker: TrackerRow[]; postings: Posting[]; onChange: () => void };
+type Props = {
+  me: Me | null;
+  tracker: TrackerRow[];
+  postings: Posting[];
+  onChange: () => void;
+  next: NextAction | null;
+  onNext: (a: NextAction) => void;
+  onStep: (step: number) => void;
+};
 
-export default function Sidebar({ me, tracker, postings, onChange }: Props) {
+export default function Sidebar({ me, tracker, postings, onChange, next, onNext, onStep }: Props) {
   const location = me?.country ? `${me.city ? me.city + ", " : ""}${me.country}` : null;
   const byCompany = postings.reduce<Record<string, Posting[]>>((acc, p) => {
     (acc[p.company] ||= []).push(p);
@@ -25,12 +34,20 @@ export default function Sidebar({ me, tracker, postings, onChange }: Props) {
               const state = me.steps_done.includes(i + 1) ? "done" : me.next_step === i + 1 ? "now" : "todo";
               return (
                 <li key={name} className={`path-${state}`}>
-                  <span className="path-dot">{state === "done" ? "✓" : i + 1}</span>
-                  {name}
+                  <button className="path-step" onClick={() => onStep(i + 1)} title={`Go to: ${name}`}>
+                    <span className="path-dot">{state === "done" ? "✓" : i + 1}</span>
+                    {name}
+                  </button>
                 </li>
               );
             })}
           </ol>
+          {next && (
+            <div className="next-box">
+              <button className="btn btn-primary next-btn" onClick={() => onNext(next)}>{next.label}</button>
+              <p className="muted small">{next.hint}</p>
+            </div>
+          )}
         </div>
       )}
 

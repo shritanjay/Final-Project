@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { EmployerView, TrackerRow } from "../api";
+import { NextAction } from "../nextStep";
 
 type SortKey = "company" | "industry" | "schools";
 type Props = {
@@ -7,11 +8,13 @@ type Props = {
   tracker: TrackerRow[];
   onTrack: (companies: string[]) => Promise<string>;
   onResearch: (companies: string[]) => void;
+  next: NextAction | null;
+  onNext: (a: NextAction) => void;
 };
 
 const PAGE = 60;
 
-export default function EmployersTable({ view, tracker, onTrack, onResearch }: Props) {
+export default function EmployersTable({ view, tracker, onTrack, onResearch, next, onNext }: Props) {
   const [topOnly, setTopOnly] = useState(true);
   const [query, setQuery] = useState("");
   const [industries, setIndustries] = useState<Set<string>>(new Set());
@@ -222,6 +225,20 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
         </span>
         {toast && <span className="toast">{toast}</span>}
       </div>
+
+      {next && next.kind !== "employers" && selected.size === 0 && (
+        <div className="next-bar">
+          <div>
+            <strong>Next step{next.step ? ` ${next.step}` : ""}:</strong> <span className="muted">{next.hint}</span>
+          </div>
+          <button className="btn btn-primary" onClick={() => onNext(next)}>{next.label}</button>
+        </div>
+      )}
+      {next && next.kind === "employers" && selected.size === 0 && (
+        <div className="next-bar subtle">
+          <span className="muted">{next.hint}</span>
+        </div>
+      )}
 
       {selected.size > 0 && (
         <div className="selbar">

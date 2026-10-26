@@ -536,3 +536,9 @@ def clear_employer_view(conn: sqlite3.Connection, user_id: int) -> None:
 def tracker_clear(conn: sqlite3.Connection, student: str) -> None:
     with conn:
         conn.execute("DELETE FROM tracker WHERE student = ?", (student,))
+
+
+def user_stamp(conn: sqlite3.Connection, user_id: int) -> str | None:
+    """Identifies one specific account even if SQLite later reuses its id."""
+    row = conn.execute("SELECT created_at, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    return f"{user_id}:{row[0]}:{row[1]}" if row else None

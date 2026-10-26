@@ -62,7 +62,9 @@ boss walks the student through 6 steps in order, showing results and asking befo
 1. Where to work (city + country) → 2. Employment reports (agents find them, or the student uploads) →
 3. Employers by industry → 4. Research companies → 5. Tracker (5–15) → 6. Job postings.
 Each specialist tool marks its step done in code (`Session.stage`, a bitmask of completed steps saved in
-`user_prefs.stage`), so the boss always knows the next step, even for returning students; skipping ahead (e.g.
+`user_prefs.stage`), so the boss always knows the next step, even for returning students. A **Next step** button (under "Your path" and at the bottom of
+the Employers table; `frontend/src/nextStep.ts`) always offers the next action, e.g. "Research my 4 tracked
+companies →" or "Find job postings →", and steps in the path are clickable. Skipping ahead (e.g.
 tracking before researching) doesn't tick the skipped step. Changing the location resets to step 1. The sidebar's
 "Your path" stepper shows progress (`/api/me` returns `stage` and `steps`).
 

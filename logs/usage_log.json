@@ -796,5 +796,95 @@
     "cached_input_tokens": 0,
     "output_tokens": 84,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:22:47+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4551,
+    "cached_input_tokens": 2234,
+    "output_tokens": 78,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:22:54+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 2351,
+    "cached_input_tokens": 2303,
+    "output_tokens": 64,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:23:04+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13132,
+    "cached_input_tokens": 4558,
+    "output_tokens": 377,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:23:10+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 25803,
+    "cached_input_tokens": 0,
+    "output_tokens": 5009,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:23:14+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 5,
+    "input_tokens": 14773,
+    "cached_input_tokens": 5228,
+    "output_tokens": 621,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:24:25+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 3887,
+    "cached_input_tokens": 0,
+    "output_tokens": 349,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:28:37+00:00",
+    "label": "company_researcher:Amazon",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 16560,
+    "cached_input_tokens": 0,
+    "output_tokens": 1152,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:28:38+00:00",
+    "label": "company_researcher:Bain & Company",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 17092,
+    "cached_input_tokens": 4813,
+    "output_tokens": 1181,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:28:45+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 5223,
+    "cached_input_tokens": 0,
+    "output_tokens": 595,
+    "web_searches": 0
   }
 ]

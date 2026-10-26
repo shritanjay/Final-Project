@@ -4,6 +4,7 @@ import Brand from "./Brand";
 import Chat from "./Chat";
 import EmployersTable from "./EmployersTable";
 import Sidebar from "./Sidebar";
+import { actionFor, NextAction, nextAction } from "../nextStep";
 
 export default function Workspace({ onLogout }: { onLogout: () => void }) {
   const [me, setMe] = useState<Me | null>(null);
@@ -43,6 +44,22 @@ export default function Workspace({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     refresh().catch(() => {});
   }, [refresh]);
+
+  const [focusTick, setFocusTick] = useState(0);
+  const next = nextAction(me, tracker, employers);
+
+  function runAction(a: NextAction) {
+    if (a.kind === "employers") return setTab("employers");
+    setTab("chat");
+    if (a.kind === "focus") return setFocusTick((t) => t + 1);
+    setOutgoing({ text: a.message!, id: Date.now() });
+  }
+
+  // Clicking a step in "Your path" jumps to that step.
+  function goToStep(step: number) {
+    const list = tracker.map((t) => t.company).slice(0, 15).join(", ");
+    runAction(actionFor(step, tracker.length, list, !!employers));
+  }
 
   async function logout() {
     await api.logout().catch(() => {});
@@ -90,13 +107,14 @@ export default function Workspace({ onLogout }: { onLogout: () => void }) {
               returning={!!me?.country}
               hasTracker={tracker.length > 0}
               outgoing={outgoing}
+              focusTick={focusTick}
             />
           </div>
           <div className={tab === "employers" ? "tab-pane" : "tab-pane hidden"}>
-            <EmployersTable view={employers} tracker={tracker} onTrack={track} onResearch={research} />
+            <EmployersTable view={employers} tracker={tracker} onTrack={track} onResearch={research} next={next} onNext={runAction} />
           </div>
         </div>
-        <Sidebar me={me} tracker={tracker} postings={postings} onChange={refresh} />
+        <Sidebar me={me} tracker={tracker} postings={postings} onChange={refresh} next={next} onNext={runAction} onStep={goToStep} />
       </main>
     </div>
   );

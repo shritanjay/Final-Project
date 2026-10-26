@@ -35,6 +35,7 @@ HISTORY_TURNS = 10  # only the last N user turns are sent to the model (full his
 @dataclass
 class Session:
     id: str = ""
+    owner: str | None = None  # "<user id>:<created_at>" of the account this in-memory state belongs to
     country: str | None = None
     city: str | None = None
     report_source: Literal["upload", "auto"] | None = None
@@ -266,15 +267,19 @@ async def verify_employers(ctx: RunContext[Session], limit: int = 10) -> str:
 
 
 def _load_session(user_id: int) -> Session:
-    """Chat state per user, loaded from the database on first use: country, city, roles and chat history."""
+    """Chat state per user. The database is the source of truth: country, city, roles and progress are re-read on
+    every call. The in-memory part (history, pending downloads, research) is tied to the exact account (id + creation
+    time), so a reused user id never inherits someone else's conversation."""
     key = f"user:{user_id}"
-    if key not in SESSIONS:
-        conn = db.connect()
-        country, city, roles, stage = db.get_prefs(conn, user_id)
+    conn = db.connect()
+    owner = db.user_stamp(conn, user_id)
+    session = SESSIONS.get(key)
+    if session is None or session.owner != owner:
         saved = db.get_chat_history(conn, user_id)
         history = ModelMessagesTypeAdapter.validate_json(saved) if saved else []
-        SESSIONS[key] = Session(id=key, country=country, city=city, target_roles=roles, stage=stage, history=history)
-    return SESSIONS[key]
+        session = SESSIONS[key] = Session(id=key, owner=owner, history=history)
+    session.country, session.city, session.target_roles, session.stage = db.get_prefs(conn, user_id)
+    return session
 
 
 def _is_user_turn(m: ModelMessage) -> bool:

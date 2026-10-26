@@ -38,6 +38,8 @@ def sign_up(conn: sqlite3.Connection, email: str, password: str) -> int:
             )
     except sqlite3.IntegrityError:
         raise AuthError("An account with that email already exists.")
+    with conn:  # SQLite can reuse ids of deleted accounts: drop anything left keyed to this id
+        conn.execute("DELETE FROM tracker WHERE student = ?", (f"user:{cur.lastrowid}",))
     return cur.lastrowid
 
 

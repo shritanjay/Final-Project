@@ -16,15 +16,20 @@ type ChatProps = {
   returning: boolean; // student already has a saved location
   hasTracker: boolean;
   outgoing?: { text: string; id: number } | null;
+  focusTick?: number;
 };
 
-export default function Chat({ onReply, onReset, returning, hasTracker, outgoing }: ChatProps) {
+export default function Chat({ onReply, onReset, returning, hasTracker, outgoing, focusTick }: ChatProps) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (focusTick) inputRef.current?.focus();
+  }, [focusTick]);
   const [resetOpen, setResetOpen] = useState(false);
   const [clearTracker, setClearTracker] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -179,6 +184,7 @@ export default function Chat({ onReply, onReset, returning, hasTracker, outgoing
           ＋ PDF
         </button>
         <textarea
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKey}
