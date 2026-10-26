@@ -17,6 +17,7 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
   const [industries, setIndustries] = useState<Set<string>>(new Set());
   const [schools, setSchools] = useState<Set<string>>(new Set());
   const [multiOnly, setMultiOnly] = useState(false);
+  const [hiredOnly, setHiredOnly] = useState(false);
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "schools", dir: -1 });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [limit, setLimit] = useState(PAGE);
@@ -25,7 +26,7 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
 
   const tracked = useMemo(() => new Set(tracker.map((t) => t.company.toLowerCase())), [tracker]);
   const base = useMemo(() => (view ? view.rows.filter((r) => !topOnly || r.top_pick) : []), [view, topOnly]);
-  const allSchools = useMemo(() => [...new Set(view?.rows.flatMap((r) => r.schools) ?? [])].sort(), [view]);
+  const allSchools = useMemo(() => [...new Set(view?.rows.flatMap((r) => r.schools.map((s) => s.school)) ?? [])].sort(), [view]);
 
   // Industry chips show counts for the current search/school filters (but not the industry filter itself).
   const preIndustry = useMemo(() => {
@@ -34,9 +35,10 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
       (r) =>
         (!q || r.company.toLowerCase().includes(q)) &&
         (!multiOnly || r.schools.length > 1) &&
-        (schools.size === 0 || r.schools.some((s) => schools.has(s))),
+        (!hiredOnly || r.hired) &&
+        (schools.size === 0 || r.schools.some((s) => schools.has(s.school))),
     );
-  }, [base, query, multiOnly, schools]);
+  }, [base, query, multiOnly, hiredOnly, schools]);
 
   const industryCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -47,7 +49,7 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
   const rows = useMemo(() => {
     const out = preIndustry.filter((r) => industries.size === 0 || industries.has(r.industry));
     const val = (r: (typeof out)[number]) =>
-      sort.key === "schools" ? r.schools.length : sort.key === "industry" ? r.industry.toLowerCase() : r.company.toLowerCase();
+      sort.key === "schools" ? r.schools.filter((s) => s.hired).length * 10 + r.schools.length : sort.key === "industry" ? r.industry.toLowerCase() : r.company.toLowerCase();
     return out.sort((a, b) => {
       const x = val(a), y = val(b);
       if (x !== y) return (x > y ? 1 : -1) * sort.dir;
@@ -94,7 +96,8 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
           <h2>Employers in {view.location}</h2>
           <p className="muted small">
             From {view.files.length} employment report{view.files.length === 1 ? "" : "s"} ·{" "}
-            {view.rows.length} employers · {view.rows.filter((r) => r.schools.length > 1).length} hired from more than one school
+            {view.rows.length} employers · {view.rows.filter((r) => r.hired).length} confirmed hires ·{" "}
+            {view.rows.filter((r) => r.schools.length > 1).length} listed by 2+ schools
           </p>
         </div>
         <div className="seg">
@@ -121,6 +124,10 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
               {s}
             </button>
           ))}
+          <label className="check" title="Only companies a report says hired its MBA grads">
+            <input type="checkbox" checked={hiredOnly} onChange={(e) => setHiredOnly(e.target.checked)} />
+            Confirmed hires
+          </label>
           <label className="check">
             <input type="checkbox" checked={multiOnly} onChange={(e) => setMultiOnly(e.target.checked)} />
             2+ schools
@@ -134,8 +141,8 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
             {name} <span>{n}</span>
           </button>
         ))}
-        {(industries.size > 0 || schools.size > 0 || multiOnly || query) && (
-          <button className="link small" onClick={() => (setIndustries(new Set()), setSchools(new Set()), setMultiOnly(false), setQuery(""))}>
+        {(industries.size > 0 || schools.size > 0 || multiOnly || hiredOnly || query) && (
+          <button className="link small" onClick={() => (setIndustries(new Set()), setSchools(new Set()), setMultiOnly(false), setHiredOnly(false), setQuery(""))}>
             Clear filters
           </button>
         )}
@@ -159,7 +166,7 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
               </th>
               <th onClick={() => sortBy("company")}>Company{arrow("company")}</th>
               <th onClick={() => sortBy("industry")}>Industry{arrow("industry")}</th>
-              <th onClick={() => sortBy("schools")}>Hired from{arrow("schools")}</th>
+              <th onClick={() => sortBy("schools")}>Schools{arrow("schools")}</th>
               <th className="col-act" />
             </tr>
           </thead>
@@ -177,7 +184,12 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
                   </td>
                   <td><span className="ind">{r.industry}</span></td>
                   <td className="col-schools">
-                    {r.schools.map((s) => <span key={s} className="school">{s}</span>)}
+                    {r.schools.map((s) => (
+                      <span key={s.school} className={`school ${s.hired ? "hired" : "recruit"}`}
+                        title={s.hired ? `${s.school}'s report says it hired grads` : `Recruits / engages at ${s.school} (hire not confirmed)`}>
+                        {s.hired && "✓ "}{s.school}
+                      </span>
+                    ))}
                   </td>
                   <td className="col-act">
                     {isTracked ? (
@@ -204,7 +216,10 @@ export default function EmployersTable({ view, tracker, onTrack, onResearch }: P
       </div>
 
       <div className="emp-foot">
-        <span className="muted small">Showing {visible.length} of {rows.length}</span>
+        <span className="muted small">
+          Showing {visible.length} of {rows.length} · <span className="school hired">✓ hired grads</span>{" "}
+          <span className="school recruit">recruits there</span>
+        </span>
         {toast && <span className="toast">{toast}</span>}
       </div>
 

@@ -358,18 +358,25 @@ async def summarize_employers(ctx: RunContext[Session]) -> str:
         "company": c["company"],
         "industry": picks.get(k) or FUNCTION_INDUSTRY.get(c["function"], "Other"),
         "function": c["function"],
-        "schools": sorted(short_school(x) for x in c["schools"]),
+        "schools": sorted(({"school": short_school(x), "hired": x in c["hired_by"]} for x in c["schools"]),
+                          key=lambda d: (not d["hired"], d["school"])),
+        "hired": bool(c["hired_by"]),
         "top_pick": k in picks,
     } for k, c in cands.items()]
-    rows.sort(key=lambda r: (not r["top_pick"], -len(r["schools"]), r["company"].lower()))
+    rows.sort(key=lambda r: (not r["top_pick"], -sum(x["hired"] for x in r["schools"]), -len(r["schools"]),
+                             r["company"].lower()))
     user_id = int(s.id.split(":")[1]) if s.id.startswith("user:") else None
     if user_id:
         db.save_employer_view(conn, user_id, location, summary.overview, files, rows)
-    per_school = ", ".join(f"{short_school(n)}: {k}" for n, k in db.report_school_counts(conn, files))
+    per_school = ", ".join(f"{short_school(n)}: {k} ({h} hired, {k - h} recruiting only)"
+                           for n, k, h in db.report_school_counts(conn, files))
     per_industry = ", ".join(f"{g.industry} {len(g.companies)}" for g in summary.industries)
     multi = sum(1 for r in rows if len(r["schools"]) > 1)
-    return (f"Saved to the student's Employers table (tab next to Chat). Reports: {len(files)} ({per_school} employers).\n"
-            f"{len(rows)} unique employers; {len(picks)} top picks; {multi} listed by more than one school.\n"
+    hired = sum(1 for r in rows if r["hired"])
+    return (f"Saved to the student's Employers table (tab next to Chat). Reports: {len(files)} ({per_school}).\n"
+            f"Some reports list companies that only recruit/network at the school, not confirmed hires.\n"
+            f"{len(rows)} unique employers; {hired} confirmed to have hired grads; {len(picks)} top picks; "
+            f"{multi} listed by more than one school.\n"
             f"Top picks by industry: {per_industry}.\nOverview: {summary.overview}")
 
 

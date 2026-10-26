@@ -22,12 +22,27 @@ Rules:
 - function: use the function the report lists the company under. If the report doesn't say (e.g. a plain
   alphabetical list), pick the category that best fits what the company mainly does (McKinsey -> consulting,
   RBC -> finance, Microsoft -> tech, Loblaw -> operations, hospitals -> healthcare). Use "other" only if unclear.
+- evidence: "hired" if the report says the company hired graduates (e.g. "employers hiring our graduates", or a
+  symbol the report's legend defines as "hired"); "recruiting" if it is only listed as recruiting at the school,
+  engaging with students, networking or posting jobs. Read list headings and legends carefully.
+- Keep footnote symbols (*, †) at the end of names exactly as printed; code removes them.
 - location: only if the report states it for that company (e.g. under a region heading). Otherwise null.
 - List each company once. Skip schools, generic phrases like "various startups", and section headings.
 """
 
 # NativeOutput = JSON-schema response format; gpt-6-luna on Portkey rejects tool-call output with reasoning on
 agent = Agent(output_type=NativeOutput(ReportExtraction), instructions=INSTRUCTIONS)
+
+
+_ABBREV = re.compile(r"\b(inc|ltd|co|corp|jr|sr|bros|ltée|ltee|s\.a|l\.p|n\.a|u\.s|p\.c)\.$", re.I)
+
+
+def clean_name(name: str) -> str:
+    """Strip footnote markers and stray trailing periods: 'Deloitte.*' -> 'Deloitte', keeps 'Acme Inc.'."""
+    name = re.sub(r"[\s*†‡]+$", "", name.strip())
+    if name.endswith(".") and not _ABBREV.search(name):
+        name = name[:-1].rstrip()
+    return name
 
 
 def _norm(text: str) -> str:
@@ -55,4 +70,6 @@ async def analyze_report(path: Path) -> tuple[ReportExtraction, list[Employer]]:
     out = result.output
     kept = [e for e in out.employers if on_page(e, pages)]
     rejected = [e for e in out.employers if e not in kept]
+    for e in kept:
+        e.company = clean_name(e.company)
     return ReportExtraction(school=out.school, employers=kept), rejected

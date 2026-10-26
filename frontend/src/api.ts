@@ -23,7 +23,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const res = await fetch(`/api${path}`, { method, headers, body: payload });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && token) {
+    // Only log out if the rejected token is still the current one (a stale request from before a new login,
+    // or another tab, must not wipe a fresh token).
+    if (res.status === 401 && token && getToken() === token) {
       setToken(null);
       window.dispatchEvent(new Event("logged-out"));
     }
@@ -46,7 +48,8 @@ export type Me = {
 export type ChatMsg = { role: "user" | "assistant"; text: string };
 export type TrackerRow = { company: string; status: Status; careers_url: string; notes: string; updated: string };
 export type Posting = { company: string; title: string; location: string; level: string; url: string; first_seen: string; location_flexible: number };
-export type EmployerRow = { company: string; industry: string; function: string; schools: string[]; top_pick: boolean };
+export type SchoolTag = { school: string; hired: boolean }; // hired = report says it hired grads (else: recruiting only)
+export type EmployerRow = { company: string; industry: string; function: string; schools: SchoolTag[]; hired: boolean; top_pick: boolean };
 export type EmployerView = { location: string; overview: string | null; files: string[]; rows: EmployerRow[]; created_at: string };
 export const STATUSES = ["interested", "applied", "interviewing", "offer", "rejected"] as const;
 export type Status = (typeof STATUSES)[number];

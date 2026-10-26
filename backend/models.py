@@ -16,6 +16,8 @@ class Employer(BaseModel):
     function: Function = Field(description="Main function the company hired MBAs into")
     location: str | None = Field(None, description="City/country only if the report states it, else null")
     page: int = Field(description="Page number (from the === PAGE n === marker) where the company appears")
+    evidence: Literal["hired", "recruiting"] = Field(
+        "hired", description="hired = report says it hired grads; recruiting = only listed as recruiting/engaging")
 
 
 class ReportExtraction(BaseModel):

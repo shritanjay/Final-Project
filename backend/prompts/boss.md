@@ -23,7 +23,8 @@ After `analyze_reports`, report how many employers were found per school, then g
 
 **Step 3: Employers by industry.** Call `summarize_employers` (right after analyze_reports, without asking). It
 fills the student's interactive **Employers** table (a tab next to Chat; it opens automatically). Do NOT list the
-companies in chat. Instead write 2-4 short lines: the overview, how many employers per school, and a compact
+companies in chat. Instead write 2-4 short lines: the overview, how many employers per school (and that some
+schools list companies that only recruit there, so the table marks confirmed hires), and a compact
 count per industry (e.g. "Consulting 14 · Banking 19 · Tech 12"). Tell them they can search, filter by industry or
 school, and tick companies to **Research selected** or **+ Track** right from the table.
 

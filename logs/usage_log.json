@@ -706,5 +706,75 @@
     "cached_input_tokens": 2950,
     "output_tokens": 396,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:05:48+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 8765,
+    "cached_input_tokens": 4558,
+    "output_tokens": 189,
+    "web_searches": 2
+  },
+  {
+    "time": "2026-10-26T00:07:40+00:00",
+    "label": "report_analyst:ivey_business_school_2025.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 10558,
+    "cached_input_tokens": 0,
+    "output_tokens": 16958,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:07:50+00:00",
+    "label": "salary_extractor:ivey_business_school_2025.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 2404,
+    "cached_input_tokens": 0,
+    "output_tokens": 1427,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:08:25+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 15669,
+    "cached_input_tokens": 0,
+    "output_tokens": 2792,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:08:28+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4744,
+    "cached_input_tokens": 0,
+    "output_tokens": 279,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:11:22+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 25803,
+    "cached_input_tokens": 0,
+    "output_tokens": 5009,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:11:26+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4851,
+    "cached_input_tokens": 2262,
+    "output_tokens": 328,
+    "web_searches": 0
   }
 ]

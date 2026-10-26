@@ -160,6 +160,7 @@ MIGRATIONS = [  # columns added after tables were first created
     "ALTER TABLE posting_scans ADD COLUMN roles TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE user_prefs ADD COLUMN stage INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE employers ADD COLUMN evidence TEXT NOT NULL DEFAULT 'hired'",
 ]
 
 
@@ -187,8 +188,9 @@ def save_report(conn: sqlite3.Connection, file: str, extraction: ReportExtractio
             "INSERT INTO reports (file, school) VALUES (?, ?)", (file, extraction.school)
         ).lastrowid
         conn.executemany(
-            "INSERT INTO employers (report_id, company, role_type, function, location, page) VALUES (?, ?, ?, ?, ?, ?)",
-            [(report_id, e.company, e.role_type, e.function, e.location, e.page) for e in extraction.employers],
+            """INSERT INTO employers (report_id, company, role_type, function, location, page, evidence)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            [(report_id, e.company, e.role_type, e.function, e.location, e.page, e.evidence) for e in extraction.employers],
         )
 
 
@@ -515,10 +517,12 @@ def get_employer_view(conn: sqlite3.Connection, user_id: int) -> dict | None:
             "created_at": row[4]}
 
 
-def report_school_counts(conn: sqlite3.Connection, files: list[str]) -> list[tuple[str, int]]:
+def report_school_counts(conn: sqlite3.Connection, files: list[str]) -> list[tuple[str, int, int]]:
+    """(school, employers listed, of which confirmed hires) per report."""
     marks = ",".join("?" * len(files))
     return conn.execute(
-        f"""SELECT COALESCE(r.school, r.file), COUNT(*) FROM employers e JOIN reports r ON r.id = e.report_id
+        f"""SELECT COALESCE(r.school, r.file), COUNT(*), SUM(e.evidence = 'hired')
+            FROM employers e JOIN reports r ON r.id = e.report_id
             WHERE r.file IN ({marks}) GROUP BY r.id ORDER BY 2 DESC""",
         files,
     ).fetchall()

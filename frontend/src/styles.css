@@ -154,6 +154,8 @@ input:focus, textarea:focus, select:focus { outline: 2px solid rgba(180, 100, 60
 .col-act { width: 96px; text-align: right; }
 .pick { color: var(--ochre); margin-left: 6px; font-size: 12px; }
 .school { display: inline-block; font-size: 12px; padding: 1px 8px; margin: 1px 4px 1px 0; border-radius: 6px; background: #efe9dc; color: var(--bark); border: 1px solid var(--sand); }
+.school.hired { background: #e3e9d3; border-color: #c8d1ad; color: var(--moss); font-weight: 600; }
+.school.recruit { background: transparent; border-style: dashed; color: var(--muted); }
 .btn-mini { font: inherit; font-size: 12px; font-weight: 600; color: var(--clay); background: transparent; border: 1px solid var(--wheat); border-radius: 999px; padding: 3px 10px; cursor: pointer; white-space: nowrap; }
 .btn-mini:hover { background: var(--terracotta); color: var(--paper); border-color: var(--terracotta); }
 .tracked { font-size: 12px; font-weight: 600; color: var(--olive); white-space: nowrap; }

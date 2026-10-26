@@ -92,6 +92,14 @@ city). Reports already analyzed count toward the 3. Max 2 web-search rounds per 
 - **Nothing is downloaded until the student confirms** in chat (`find_reports` → student says yes → `download_reports`).
   Files are saved to `data/reports/` as `<school>_<year>.pdf`, then `analyze_reports` extracts employers.
 
+## Hired vs. recruiting
+Reports list employers differently, so each listing has `evidence`: **hired** (the report says the company hired its
+grads) or **recruiting** (only recruits / engages / networks at the school). The Report Analyst reads list headings
+and legends to set it (e.g. Ivey: "(*) have hired at least one Ivey MBA grad"; other listed companies only engaged).
+Footnote marks and stray periods are stripped from names (`clean_name`). Toronto data: Rotman 228 hired; Schulich
+602 recruiting ("Companies Recruiting at Schulich"); Ivey 158 hired + 460 recruiting. The summarizer prefers
+confirmed hires; the Employers table shows ✓ (hired) vs dashed (recruiting) school badges and a "Confirmed hires" filter.
+
 ## Report Summarizer + Employers table
 Groups employers from the analyzed reports of the city's top 3 MBA programs into industries and presents
 **at most 100 companies** to the student (boss tool `summarize_employers`).
