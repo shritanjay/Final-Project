@@ -14,7 +14,7 @@ pytest_out = (HERE / "pytest_output.txt").read_text().strip()
 inj_after = (ROOT / "logs" / "injection_demo.txt").read_text().strip()
 inj_before = (ROOT / "logs" / "injection_demo_before_fix.txt").read_text().strip()
 
-REPO = "https://github.com/shritanjay/career-scout"  # TODO: confirm repo URL before submitting
+REPO = "https://github.com/shritanjay/Final-Project"
 
 
 def img(name: str, caption: str, width: str = "86%") -> str:

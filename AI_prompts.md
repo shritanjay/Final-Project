@@ -127,3 +127,6 @@ Yes. Start with the repo cleanup (remove personal data from git history, demo da
 
 ## 34. Push to GitHub
 first lets submit to Github what we have?
+
+## 35. Check GitHub push
+check if i did it properly
