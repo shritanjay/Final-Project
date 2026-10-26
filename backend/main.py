@@ -4,6 +4,7 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
+from pydantic_ai.exceptions import UsageLimitExceeded
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -145,7 +146,12 @@ def me(user: User = Depends(current_user)):
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, user: User = Depends(current_user)):
-    session, answer, actions = await boss.chat(user.id, body.message)
+    try:
+        session, answer, actions = await boss.chat(user.id, body.message)
+    except UsageLimitExceeded:
+        return ChatResponse(answer="I stopped this request because it hit a safety limit on model calls or tokens "
+                            "(this prevents runaway loops and costs). Try a smaller request, e.g. fewer companies "
+                            "at a time.", country=None)
     return ChatResponse(answer=answer, country=session.country, actions=actions)
 
 

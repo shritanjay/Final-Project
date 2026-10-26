@@ -35,8 +35,11 @@ async def verify(company: str, country: str) -> GeoCheck:
     result = await run_logged(
         agent, f"Company: {company}\nCountry: {country}", f"geo_verifier:{company}:{country}", model=responses_model()
     )
-    check = result.output
-    # Sanity rules applied in code, so a manipulated or sloppy answer can't slip through
+    return sanitize(result.output, country)
+
+
+def sanitize(check: GeoCheck, country: str) -> GeoCheck:
+    """Rules applied in code, so a manipulated or sloppy answer can't slip through."""
     if not _is_url(check.careers_url):
         check.careers_url = None
     if not _is_url(check.evidence_url):

@@ -1436,5 +1436,25 @@
     "cached_input_tokens": 0,
     "output_tokens": 913,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T02:58:32+00:00",
+    "label": "report_analyst:subtle.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 762,
+    "cached_input_tokens": 0,
+    "output_tokens": 458,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T02:59:32+00:00",
+    "label": "report_analyst:subtle.pdf",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 814,
+    "cached_input_tokens": 0,
+    "output_tokens": 248,
+    "web_searches": 0
   }
 ]

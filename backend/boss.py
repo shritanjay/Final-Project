@@ -17,7 +17,7 @@ from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter, ModelRe
 from backend import db
 from backend.geo_verifier import verify
 from backend.models import ReportLinks
-from backend.llm import responses_model, run_logged
+from backend.llm import BOSS_LIMITS, responses_model, run_logged
 from backend.program_scout import find_programs
 from backend.employment_report_finder import check_pdf, download_pdf, file_name, find_report_links
 from backend.report_analyst import analyze_report
@@ -350,7 +350,7 @@ async def chat(user_id: int, message: str) -> tuple[Session, str, list[dict]]:
     session.turn_actions = []
     context = recent_history(session.history)
     result = await run_logged(
-        boss, message, "boss", model=responses_model(), deps=session, message_history=context
+        boss, message, "boss", model=responses_model(), deps=session, message_history=context, usage_limits=BOSS_LIMITS
     )
     conn = db.connect()
     full = session.history[: len(session.history) - len(context)] + result.all_messages()

@@ -7,6 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from pydantic_ai import Agent
+from pydantic_ai.usage import UsageLimits
 from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -56,7 +57,13 @@ def log_usage(label: str, usage) -> dict:
     return entry
 
 
+# Hard caps per run so a confused agent can't loop or overspend (a run that hits a cap raises and is reported).
+SPECIALIST_LIMITS = UsageLimits(request_limit=5, total_tokens_limit=120_000)
+BOSS_LIMITS = UsageLimits(request_limit=25, total_tokens_limit=250_000)
+
+
 async def run_logged(agent: Agent, prompt: str, label: str, **kwargs):
+    kwargs.setdefault("usage_limits", SPECIALIST_LIMITS)
     result = await agent.run(prompt, **kwargs)
     log_usage(label, result.usage)
     return result
