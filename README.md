@@ -61,8 +61,9 @@ Drop employment report PDFs in `data/reports/` and run `python analyze_reports.p
 boss walks the student through 6 steps in order, showing results and asking before each next step:
 1. Where to work (city + country) → 2. Employment reports (agents find them, or the student uploads) →
 3. Employers by industry → 4. Research companies → 5. Tracker (5–15) → 6. Job postings.
-Each specialist tool marks its step done in code (`Session.stage`, saved in `user_prefs.stage`), so the boss always
-knows the next step, even for returning students. Changing the location resets to step 1. The sidebar's
+Each specialist tool marks its step done in code (`Session.stage`, a bitmask of completed steps saved in
+`user_prefs.stage`), so the boss always knows the next step, even for returning students; skipping ahead (e.g.
+tracking before researching) doesn't tick the skipped step. Changing the location resets to step 1. The sidebar's
 "Your path" stepper shows progress (`/api/me` returns `stage` and `steps`).
 
 Multi-agent pattern from Lecture 10: a boss agent talks to the student and delegates to specialists via tools.
@@ -83,14 +84,15 @@ Finds the top full-time MBA programs in the country/city using the QS MBA rankin
 - Downloading the report PDFs isn't automated yet; the boss asks the student to download and upload them.
 
 ## MBA Employment Report Finder
-Finds the latest full-time MBA employment report PDF for the top 3 programs in the student's city
-(order from Program Scout; schools in the city first).
+Gets employment reports for **3 programs per city**: best-ranked in the city first (Program Scout order); if a school
+has no report (or its link fails), it moves on to the next-ranked program, then nearby ones (flagged as outside the
+city). Reports already analyzed count toward the 3. Max 2 web-search rounds per request.
 - First tries report links Program Scout already found (checked in code, no model call), then web-searches the rest.
 - Every link is checked in code: HTTPS, HTTP 200, file really starts with `%PDF`, under 25 MB.
 - **Nothing is downloaded until the student confirms** in chat (`find_reports` → student says yes → `download_reports`).
   Files are saved to `data/reports/` as `<school>_<year>.pdf`, then `analyze_reports` extracts employers.
 
-## Report Summarizer
+## Report Summarizer + Employers table
 Groups employers from the analyzed reports of the city's top 3 MBA programs into industries and presents
 **at most 100 companies** to the student (boss tool `summarize_employers`).
 - Code picks the reports (matched to Program Scout's top 3; falls back to all analyzed reports), merges duplicate
@@ -98,6 +100,10 @@ Groups employers from the analyzed reports of the city's top 3 MBA programs into
 - The model groups them into 6–12 industries and picks the most useful (companies listed by more schools first).
 - Code then drops any name not in the reports and enforces the 100 cap. `*` = listed by more than one school.
 - One run for Rotman + Schulich (787 unique employers in) ≈ 9k input / 2.6k output tokens.
+- Every employer (top picks + all others, with industry and schools) is saved per user in `employer_views` and shown
+  in the app's interactive **Employers** tab (`GET /api/employers`): search, industry chips with live counts,
+  school filter, "2+ schools" toggle, Top picks / All, sortable columns, and multi-select to **Research selected**
+  (sends the list to the boss) or **Add to tracker** (`POST /api/tracker`). The boss only gives a short summary in chat.
 
 ## Company Researcher + Tracker
 - `research_companies`: per company (web search, max 20 per run, 4 at a time, cached 30 days): careers URL,

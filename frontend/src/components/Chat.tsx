@@ -1,5 +1,6 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { api, ChatMsg } from "../api";
 
 const GREETING = `**Hey! Where do you want to work after your MBA?**
@@ -9,7 +10,9 @@ Tell me the city and country, for example *"Berlin, Germany"*, or just a country
 From there I'll walk you through it step by step: find the employment reports of the top MBA programs in that city, pull out the companies that hire their grads, research the ones you like, and track their job postings.`;
 const RETURNING = ["Continue where I left off", "Check my tracked companies for new postings", "Show my tracker"];
 
-export default function Chat({ onReply, returning }: { onReply: () => void; returning: boolean }) {
+type ChatProps = { onReply: () => void; returning: boolean; outgoing?: { text: string; id: number } | null };
+
+export default function Chat({ onReply, returning, outgoing }: ChatProps) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -23,6 +26,11 @@ export default function Chat({ onReply, returning }: { onReply: () => void; retu
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
+  // Messages sent from elsewhere in the app (e.g. "Research selected" in the Employers table).
+  useEffect(() => {
+    if (outgoing) send(outgoing.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outgoing?.id]);
 
   async function send(text: string) {
     const msg = text.trim();
@@ -99,7 +107,7 @@ export default function Chat({ onReply, returning }: { onReply: () => void; retu
         {messages.map((m, i) => (
           <div key={i} className={`msg msg-${m.role}`}>
             {m.role === "assistant" ? (
-              <ReactMarkdown components={{ a: (p) => <a {...p} target="_blank" rel="noreferrer" /> }}>{m.text}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: (p) => <a {...p} target="_blank" rel="noreferrer" /> }}>{m.text}</ReactMarkdown>
             ) : (
               m.text
             )}

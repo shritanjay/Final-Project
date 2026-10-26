@@ -42,7 +42,7 @@ class Session:
     pending_downloads: list[tuple[str, str]] = field(default_factory=list)  # (url, file name) awaiting OK
     research: dict[str, CompanyResearch] = field(default_factory=dict)  # last researched companies
     target_roles: list[str] = field(default_factory=list)  # e.g. ["strategy", "product", "finance"]
-    stage: int = 0  # last completed step of the guided path (see STEPS)
+    stage: int = 0  # bitmask of completed guided-path steps: bit (n-1) set = step n done (see STEPS)
 
 
 SESSIONS: dict[str, Session] = {}
@@ -52,7 +52,16 @@ STEPS = ["Where to work", "Employment reports", "Employers by industry", "Resear
 
 def _done(s: Session, step: int) -> None:
     """Mark a guided-path step complete (set by the tools, not by the model)."""
-    s.stage = max(s.stage, step)
+    s.stage |= 1 << (step - 1)
+
+
+def steps_done(stage: int) -> list[int]:
+    return [i for i in range(1, len(STEPS) + 1) if stage & (1 << (i - 1))]
+
+
+def next_step(stage: int) -> int | None:
+    """First step not done yet (1-based), or None when all are done."""
+    return next((i for i in range(1, len(STEPS) + 1) if not stage & (1 << (i - 1))), None)
 
 boss = Agent(deps_type=Session, output_type=str, instructions=(Path(__file__).parent / "prompts" / "boss.md").read_text())
 
@@ -61,8 +70,9 @@ boss = Agent(deps_type=Session, output_type=str, instructions=(Path(__file__).pa
 def _state(ctx: RunContext[Session]) -> str:
     s = ctx.deps
     tracked = [r[0] for r in db.tracker_rows(db.connect(), s.id)]
-    done = ", ".join(f"{i}. {n}" for i, n in enumerate(STEPS[: s.stage], 1)) or "none"
-    nxt = f"step {s.stage + 1}: {STEPS[s.stage]}" if s.stage < len(STEPS) else "all done (offer a new posting check)"
+    done = ", ".join(f"{i}. {STEPS[i - 1]}" for i in steps_done(s.stage)) or "none"
+    n = next_step(s.stage)
+    nxt = f"step {n}: {STEPS[n - 1]}" if n else "all done (offer a new posting check)"
     return (f"Guided path: completed steps: {done}. Next: {nxt}.\n"
             f"Saved tracker: {', '.join(tracked) or 'empty'}.\n"
             f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, "
@@ -141,46 +151,80 @@ async def research_programs(ctx: RunContext[Session], top_n: int = 10) -> str:
     return f"Top MBA programs{note}:\n" + "\n".join(lines)
 
 
+REPORTS_PER_CITY = 3
+
+
+def _city_reports(conn, s: Session) -> list[str]:
+    """Analyzed report files for the location: best-ranked programs first (city first), up to REPORTS_PER_CITY."""
+    ranked = db.top_programs_in_city(conn, s.country, s.city, 10) if s.country else []
+    return db.reports_for_schools(conn, ranked)[:REPORTS_PER_CITY]
+
+
 @boss.tool
-async def find_reports(ctx: RunContext[Session], n: int = 3) -> str:
-    """Delegate to the MBA Employment Report Finder: find the latest employment report PDFs for the top n MBA programs in the
-    session's city (from research_programs). Does NOT download; returns links with file sizes for the student
-    to approve, then call download_reports."""
+async def find_reports(ctx: RunContext[Session]) -> str:
+    """Delegate to the MBA Employment Report Finder: get employment reports for 3 MBA programs in the session's
+    city (best-ranked first; if a school has no report, moves on to the next-ranked program, city first, then
+    nearby). Reports already analyzed count. Does NOT download; returns links with sizes for the student to
+    approve, then call download_reports."""
     s = ctx.deps
     if not s.country:
         return "No country set yet."
     conn = db.connect()
-    schools = db.top_programs_in_city(conn, s.country, s.city, min(n, 5))
-    if not schools:
+    ranked = db.top_programs_in_city(conn, s.country, s.city, 10)
+    if not ranked:
         return "No programs researched yet. Call research_programs first."
     s.pending_downloads = []
-    lines = []
-    # Free first: links Program Scout already found, checked in code (no model call)
-    to_search = []
-    for school in schools:
-        url = db.known_report_url(conn, school)
-        ok, size, _ = await check_pdf(url) if url else (False, None, "")
-        if ok:
-            name = file_name(school, url)
-            s.pending_downloads.append((url, name))
-            lines.append(f"- {school}: {name}, {f'{size:.1f} MB' if size else 'size unknown'} from {url}")
-        else:
-            to_search.append(school)
-    links = await find_report_links(to_search) if to_search else ReportLinks(reports=[])
-    for link in links.reports:
-        if link.pdf_url:
-            ok, size, note = await check_pdf(link.pdf_url)
-            if ok:
-                name = file_name(link.school, link.report_year)
-                s.pending_downloads.append((link.pdf_url, name))
-                lines.append(f"- {link.school} ({link.report_year or 'year?'}): {name}, "
-                             f"{f'{size:.1f} MB' if size else 'size unknown'} from {link.pdf_url}")
+    picked, notes, idx, searches = [], [], 0, 0
+
+    def where(school: str) -> str:
+        pc = db.program_city(conn, school)
+        return f" [{pc}, outside {s.city}]" if s.city and pc and s.city.lower() not in pc.lower() else ""
+
+    while len(picked) < REPORTS_PER_CITY and idx < len(ranked):
+        batch = ranked[idx: idx + REPORTS_PER_CITY - len(picked)]
+        idx += len(batch)
+        to_search = []
+        for school in batch:
+            if db.reports_for_schools(conn, [school]):  # already analyzed: no download needed
+                picked.append(f"- {school}{where(school)}: report already analyzed")
                 continue
-            lines.append(f"- {link.school}: PDF link failed check ({note}): {link.pdf_url}")
-        else:
-            lines.append(f"- {link.school}: no direct PDF; report page: {link.page_url or 'not found'}")
-    return "\n".join(lines) + (f"\n{len(s.pending_downloads)} PDF(s) ready. Ask the student to confirm before "
-                               "calling download_reports." if s.pending_downloads else "")
+            url = db.known_report_url(conn, school)
+            ok, size, _ = await check_pdf(url) if url else (False, None, "")
+            if ok:
+                name = file_name(school, url)
+                s.pending_downloads.append((url, name))
+                picked.append(f"- {school}{where(school)}: {name}, {f'{size:.1f} MB' if size else 'size unknown'} from {url}")
+            else:
+                to_search.append(school)
+        if not to_search:
+            continue
+        if searches >= 2:  # cap web searches per request
+            notes += [f"- {school}: not searched (search limit reached)" for school in to_search]
+            continue
+        searches += 1
+        found = {l.school: l for l in (await find_report_links(to_search)).reports}
+        for school in to_search:
+            link = found.get(school) or next((l for k, l in found.items() if k.split(",")[0] in school), None)
+            if link and link.pdf_url:
+                ok, size, note = await check_pdf(link.pdf_url)
+                if ok:
+                    name = file_name(school, link.report_year)
+                    s.pending_downloads.append((link.pdf_url, name))
+                    picked.append(f"- {school}{where(school)} ({link.report_year or 'year?'}): {name}, "
+                                  f"{f'{size:.1f} MB' if size else 'size unknown'} from {link.pdf_url}")
+                    continue
+                notes.append(f"- {school}: PDF link failed check ({note}); skipped, trying the next school")
+            else:
+                page = link.page_url if link else None
+                notes.append(f"- {school}: no PDF found{f' (report page: {page})' if page else ''}; trying the next school")
+    out = [f"Reports for {len(picked)} of {REPORTS_PER_CITY} programs:"] + picked
+    if notes:
+        out += ["Skipped:"] + notes
+    if s.pending_downloads:
+        out.append(f"{len(s.pending_downloads)} PDF(s) to download. Ask the student to confirm before calling download_reports.")
+    elif picked:
+        out.append("Nothing to download: all are already analyzed. Call analyze_reports (fast) then summarize_employers.")
+    return "\n".join(out)
 
 
 @boss.tool
@@ -281,28 +325,59 @@ def reset_chat(user_id: int) -> None:
     SESSIONS.pop(f"user:{user_id}", None)
 
 
+FUNCTION_INDUSTRY = {  # fallback industry for employers outside the curated top picks
+    "consulting": "Consulting", "finance": "Finance", "tech": "Technology", "marketing": "Consumer & Marketing",
+    "operations": "Operations & Industrial", "healthcare": "Healthcare & Life Sciences", "energy": "Energy & Resources",
+    "general management": "General Management", "other": "Other",
+}
+
+
+def short_school(name: str) -> str:
+    """'Rotman School of Management, University of Toronto' -> 'Rotman'."""
+    words = [w for w in name.split(",")[0].split() if w.lower() not in ("the",)]
+    return words[0] if words else name
+
+
 @boss.tool
 async def summarize_employers(ctx: RunContext[Session]) -> str:
-    """Delegate to the Report Summarizer: group employers from the analyzed reports of the top 3 MBA programs in
-    the session's city into industries (max 100 companies). Call after analyze_reports."""
+    """Delegate to the Report Summarizer: group employers from the analyzed reports of the city's 3 MBA programs
+    into industries (top picks, max 100). Saves ALL employers to the student's interactive Employers table in the
+    app (filter by industry/school, select to research or track). Call after analyze_reports."""
     s = ctx.deps
     conn = db.connect()
-    schools = db.top_programs_in_city(conn, s.country, s.city, 3) if s.country else []
-    files = db.reports_for_schools(conn, schools) if schools else []
+    files = _city_reports(conn, s)
     if not files:  # e.g. student uploaded reports without running research_programs
-        files = [r[0] for r in conn.execute("SELECT file FROM reports")]
+        files = [r[0] for r in conn.execute("SELECT file FROM reports")][:REPORTS_PER_CITY]
     if not files:
         return "No analyzed reports yet."
-    summary, cands = await summarize(conn, files, s.city or s.country or "the target location")
+    location = s.city or s.country or "the target location"
+    summary, cands = await summarize(conn, files, location)
     _done(s, 3)
-    total = sum(len(g.companies) for g in summary.industries)
-    lines = [f"Reports used: {', '.join(files)}. {len(cands)} unique employers found; showing {total}.",
-             f"Overview: {summary.overview}"]
-    for g in summary.industries:
-        tagged = [f"{c}{' *' if len(cands[norm(c)]['schools']) > 1 else ''}" for c in g.companies]
-        lines.append(f"\n{g.industry} ({len(g.companies)}): " + ", ".join(tagged))
-    lines.append("\n(* = listed by more than one school)")
-    return "\n".join(lines)
+    picks = {norm(c): g.industry for g in summary.industries for c in g.companies}
+    rows = [{
+        "company": c["company"],
+        "industry": picks.get(k) or FUNCTION_INDUSTRY.get(c["function"], "Other"),
+        "function": c["function"],
+        "schools": sorted(short_school(x) for x in c["schools"]),
+        "top_pick": k in picks,
+    } for k, c in cands.items()]
+    rows.sort(key=lambda r: (not r["top_pick"], -len(r["schools"]), r["company"].lower()))
+    user_id = int(s.id.split(":")[1]) if s.id.startswith("user:") else None
+    if user_id:
+        db.save_employer_view(conn, user_id, location, summary.overview, files, rows)
+    per_school = ", ".join(f"{short_school(n)}: {k}" for n, k in db.report_school_counts(conn, files))
+    per_industry = ", ".join(f"{g.industry} {len(g.companies)}" for g in summary.industries)
+    multi = sum(1 for r in rows if len(r["schools"]) > 1)
+    return (f"Saved to the student's Employers table (tab next to Chat). Reports: {len(files)} ({per_school} employers).\n"
+            f"{len(rows)} unique employers; {len(picks)} top picks; {multi} listed by more than one school.\n"
+            f"Top picks by industry: {per_industry}.\nOverview: {summary.overview}")
+
+
+def mark_step(user_id: int, step: int) -> None:
+    """For actions taken in the UI (e.g. + Track in the Employers table)."""
+    session = _load_session(user_id)
+    _done(session, step)
+    db.save_prefs(db.connect(), user_id, session.country, session.city, session.target_roles, session.stage)
 
 
 def _fmt_research(r: CompanyResearch) -> str:

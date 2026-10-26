@@ -125,6 +125,14 @@ CREATE TABLE IF NOT EXISTS chat_history (
     messages TEXT NOT NULL,  -- PydanticAI message list as JSON
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS employer_views (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    location TEXT NOT NULL,
+    overview TEXT,
+    files TEXT NOT NULL,  -- JSON list of report files used
+    rows TEXT NOT NULL,   -- JSON list of employer rows for the UI table
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS tracker (
     id INTEGER PRIMARY KEY,
     student TEXT NOT NULL,
@@ -272,6 +280,11 @@ def top_programs_in_city(conn: sqlite3.Connection, country: str, city: str | Non
     in_city = [r[0] for r in rows if city and city.lower() in r[1].lower()]
     rest = [r[0] for r in rows if r[0] not in in_city]
     return (in_city + rest)[:n]
+
+
+def program_city(conn: sqlite3.Connection, school: str) -> str | None:
+    row = conn.execute("SELECT program_city FROM programs WHERE school = ? ORDER BY id DESC", (school,)).fetchone()
+    return row[0] if row else None
 
 
 def known_report_url(conn: sqlite3.Connection, school: str) -> str | None:
@@ -479,3 +492,33 @@ def save_chat_history(conn: sqlite3.Connection, user_id: int, messages_json: str
 def clear_chat_history(conn: sqlite3.Connection, user_id: int) -> None:
     with conn:
         conn.execute("DELETE FROM chat_history WHERE user_id = ?", (user_id,))
+
+
+def save_employer_view(conn: sqlite3.Connection, user_id: int, location: str, overview: str, files: list[str],
+                       rows: list[dict]) -> None:
+    with conn:
+        conn.execute(
+            """INSERT INTO employer_views (user_id, location, overview, files, rows, created_at)
+               VALUES (?, ?, ?, ?, ?, datetime('now'))
+               ON CONFLICT (user_id) DO UPDATE SET location = excluded.location, overview = excluded.overview,
+                 files = excluded.files, rows = excluded.rows, created_at = excluded.created_at""",
+            (user_id, location, overview, json.dumps(files), json.dumps(rows)),
+        )
+
+
+def get_employer_view(conn: sqlite3.Connection, user_id: int) -> dict | None:
+    row = conn.execute("SELECT location, overview, files, rows, created_at FROM employer_views WHERE user_id = ?",
+                       (user_id,)).fetchone()
+    if not row:
+        return None
+    return {"location": row[0], "overview": row[1], "files": json.loads(row[2]), "rows": json.loads(row[3]),
+            "created_at": row[4]}
+
+
+def report_school_counts(conn: sqlite3.Connection, files: list[str]) -> list[tuple[str, int]]:
+    marks = ",".join("?" * len(files))
+    return conn.execute(
+        f"""SELECT COALESCE(r.school, r.file), COUNT(*) FROM employers e JOIN reports r ON r.id = e.report_id
+            WHERE r.file IN ({marks}) GROUP BY r.id ORDER BY 2 DESC""",
+        files,
+    ).fetchall()

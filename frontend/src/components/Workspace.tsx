@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import { api, Me, Posting, TrackerRow } from "../api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, EmployerView, Me, Posting, TrackerRow } from "../api";
 import Brand from "./Brand";
 import Chat from "./Chat";
+import EmployersTable from "./EmployersTable";
 import Sidebar from "./Sidebar";
 
 export default function Workspace({ onLogout }: { onLogout: () => void }) {
@@ -9,14 +10,35 @@ export default function Workspace({ onLogout }: { onLogout: () => void }) {
   const [tracker, setTracker] = useState<TrackerRow[]>([]);
   const [postings, setPostings] = useState<Posting[]>([]);
   const [verifySent, setVerifySent] = useState(false);
+  const [employers, setEmployers] = useState<EmployerView | null>(null);
+  const [tab, setTab] = useState<"chat" | "employers">("chat");
+  const [outgoing, setOutgoing] = useState<{ text: string; id: number } | null>(null);
+  const lastTable = useRef<string | null | undefined>(undefined);
 
-  // Re-read saved state after every assistant reply (the boss may have changed the tracker, location or postings).
+  // Re-read saved state after every assistant reply (the boss may have changed the tracker, location, postings
+  // or built a new employer table). A freshly built table opens its tab automatically.
   const refresh = useCallback(async () => {
-    const [m, t] = await Promise.all([api.me(), api.tracker()]);
+    const [m, t, e] = await Promise.all([api.me(), api.tracker(), api.employers()]);
     setMe(m);
     setTracker(t);
+    setEmployers(e);
+    if (lastTable.current !== undefined && e && e.created_at !== lastTable.current) setTab("employers");
+    lastTable.current = e?.created_at ?? null;
     setPostings(m.country ? await api.postings() : []);
   }, []);
+
+  async function track(companies: string[]) {
+    const r = await api.addTracker(companies);
+    refresh();
+    const parts = [r.added.length ? `Added ${r.added.length} to your tracker (${r.count}/${r.max}).` : "Already tracked."];
+    if (r.full.length) parts.push(`Tracker is full, so ${r.full.length} weren't added.`);
+    return parts.join(" ");
+  }
+
+  function research(companies: string[]) {
+    setTab("chat");
+    setOutgoing({ text: `Please research these companies: ${companies.join(", ")}.`, id: Date.now() });
+  }
 
   useEffect(() => {
     refresh().catch(() => {});
@@ -50,7 +72,20 @@ export default function Workspace({ onLogout }: { onLogout: () => void }) {
       )}
 
       <main className="workspace">
-        <Chat onReply={refresh} returning={(me?.stage ?? 0) > 0 || tracker.length > 0} />
+        <div className="main-col">
+          <nav className="tabs">
+            <button className={tab === "chat" ? "on" : ""} onClick={() => setTab("chat")}>Chat</button>
+            <button className={tab === "employers" ? "on" : ""} onClick={() => setTab("employers")}>
+              Employers {employers && <span>{employers.rows.length}</span>}
+            </button>
+          </nav>
+          <div className={tab === "chat" ? "tab-pane" : "tab-pane hidden"}>
+            <Chat onReply={refresh} returning={(me?.steps_done.length ?? 0) > 0 || tracker.length > 0} outgoing={outgoing} />
+          </div>
+          <div className={tab === "employers" ? "tab-pane" : "tab-pane hidden"}>
+            <EmployersTable view={employers} tracker={tracker} onTrack={track} onResearch={research} />
+          </div>
+        </div>
         <Sidebar me={me} tracker={tracker} postings={postings} onChange={refresh} />
       </main>
     </div>

@@ -39,12 +39,15 @@ export type Me = {
   country: string | null;
   city: string | null;
   target_roles: string[];
-  stage: number; // last completed step of the guided path
   steps: string[];
+  steps_done: number[]; // 1-based step numbers completed
+  next_step: number | null; // first step not done yet
 };
 export type ChatMsg = { role: "user" | "assistant"; text: string };
 export type TrackerRow = { company: string; status: Status; careers_url: string; notes: string; updated: string };
 export type Posting = { company: string; title: string; location: string; level: string; url: string; first_seen: string; location_flexible: number };
+export type EmployerRow = { company: string; industry: string; function: string; schools: string[]; top_pick: boolean };
+export type EmployerView = { location: string; overview: string | null; files: string[]; rows: EmployerRow[]; created_at: string };
 export const STATUSES = ["interested", "applied", "interviewing", "offer", "rejected"] as const;
 export type Status = (typeof STATUSES)[number];
 
@@ -66,6 +69,9 @@ export const api = {
     return request<{ saved: string }>("POST", "/upload", fd);
   },
   tracker: () => request<TrackerRow[]>("GET", "/tracker"),
+  addTracker: (companies: string[]) =>
+    request<{ added: string[]; full: string[]; count: number; max: number }>("POST", "/tracker", { companies }),
+  employers: () => request<EmployerView | null>("GET", "/employers"),
   updateTracker: (company: string, status: Status) => request("PATCH", "/tracker", { company, status }),
   removeTracker: (company: string) => request("DELETE", `/tracker/${encodeURIComponent(company)}`),
   postings: () => request<Posting[]>("GET", "/postings"),

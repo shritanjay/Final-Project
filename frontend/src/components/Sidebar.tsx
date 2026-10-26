@@ -18,11 +18,11 @@ export default function Sidebar({ me, tracker, postings, onChange }: Props) {
         <div className="card side-card">
           <div className="side-head">
             <h3>Your path</h3>
-            <span className="count">{Math.min(me.stage, me.steps.length)}/{me.steps.length}</span>
+            <span className="count">{me.steps_done.length}/{me.steps.length}</span>
           </div>
           <ol className="path">
             {me.steps.map((name, i) => {
-              const state = i < me.stage ? "done" : i === me.stage ? "now" : "todo";
+              const state = me.steps_done.includes(i + 1) ? "done" : me.next_step === i + 1 ? "now" : "todo";
               return (
                 <li key={name} className={`path-${state}`}>
                   <span className="path-dot">{state === "done" ? "✓" : i + 1}</span>

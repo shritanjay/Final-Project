@@ -128,7 +128,8 @@ def me(user: User = Depends(current_user)):
     conn = db.connect()
     country, city, roles, stage = db.get_prefs(conn, user.id)
     return {"email": user.email, "email_verified": auth.is_verified(conn, user.id),
-            "country": country, "city": city, "target_roles": roles, "stage": stage, "steps": boss.STEPS}
+            "country": country, "city": city, "target_roles": roles, "steps": boss.STEPS,
+            "steps_done": boss.steps_done(stage), "next_step": boss.next_step(stage)}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -165,6 +166,32 @@ async def upload(file: UploadFile, user: User = Depends(current_user)):
 def tracker(user: User = Depends(current_user)):
     cols = ("company", "status", "careers_url", "notes", "updated")
     return [dict(zip(cols, r)) for r in db.tracker_rows(db.connect(), f"user:{user.id}")]
+
+
+@app.get("/api/employers")
+def employers(user: User = Depends(current_user)):
+    """The student's employer table (saved by the Report Summarizer), or null if not built yet."""
+    return db.get_employer_view(db.connect(), user.id)
+
+
+class TrackerAdd(BaseModel):
+    companies: list[str]
+
+
+@app.post("/api/tracker")
+def tracker_add(body: TrackerAdd, user: User = Depends(current_user)):
+    conn, student = db.connect(), f"user:{user.id}"
+    have = len(db.tracker_rows(conn, student))
+    added, full = [], []
+    for c in body.companies:
+        if have >= db.TRACKER_MAX:
+            full.append(c)
+        elif db.tracker_add(conn, student, c, None):
+            added.append(c)
+            have += 1
+    if have:
+        boss.mark_step(user.id, 5)
+    return {"added": added, "full": full, "count": have, "max": db.TRACKER_MAX}
 
 
 class TrackerUpdate(BaseModel):

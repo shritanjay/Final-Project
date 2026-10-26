@@ -606,5 +606,105 @@
     "cached_input_tokens": 0,
     "output_tokens": 87,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:54:58+00:00",
+    "label": "report_finder:2 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 14920,
+    "cached_input_tokens": 0,
+    "output_tokens": 517,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-25T23:55:01+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 4,
+    "input_tokens": 9843,
+    "cached_input_tokens": 4854,
+    "output_tokens": 369,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:55:36+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 9776,
+    "cached_input_tokens": 0,
+    "output_tokens": 2630,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-25T23:55:42+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 5,
+    "input_tokens": 16714,
+    "cached_input_tokens": 13211,
+    "output_tokens": 882,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:00:36+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 4509,
+    "cached_input_tokens": 0,
+    "output_tokens": 74,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:01:04+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13132,
+    "cached_input_tokens": 4558,
+    "output_tokens": 377,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:01:09+00:00",
+    "label": "report_finder:1 schools",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 8765,
+    "cached_input_tokens": 4558,
+    "output_tokens": 189,
+    "web_searches": 2
+  },
+  {
+    "time": "2026-10-26T00:01:13+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 4,
+    "input_tokens": 10494,
+    "cached_input_tokens": 7485,
+    "output_tokens": 421,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:01:48+00:00",
+    "label": "report_summarizer:Toronto",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 9776,
+    "cached_input_tokens": 0,
+    "output_tokens": 2630,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:01:51+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 3,
+    "input_tokens": 10309,
+    "cached_input_tokens": 2950,
+    "output_tokens": 396,
+    "web_searches": 0
   }
 ]
