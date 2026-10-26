@@ -77,7 +77,7 @@ def _state(ctx: RunContext[Session]) -> str:
     return (f"Guided path: completed steps: {done}. Next: {nxt}.\n"
             f"Saved tracker: {', '.join(tracked) or 'empty'}.\n"
             f"Current state: country={s.country or 'not set'}, city={s.city or 'any'}, "
-            f"report_source={s.report_source or 'not chosen'}, target_roles={', '.join(s.target_roles) or 'not set'}.")
+            f"report_source={s.report_source or 'not chosen'}.")
 
 
 @boss.tool
@@ -512,17 +512,10 @@ def _location_key(s: Session) -> str:
 
 
 @boss.tool
-def set_target_roles(ctx: RunContext[Session], roles: list[str]) -> str:
-    """Save the role types the student wants, e.g. ["strategy", "product management", "finance"]."""
-    ctx.deps.target_roles = [r.strip().lower() for r in roles if r.strip()]
-    return f"Target roles: {', '.join(ctx.deps.target_roles)}."
-
-
-@boss.tool
 async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> str:
     """Delegate to the Job Posting Scout: for every company on the student's tracker, find the careers page and
-    current intern / MBA / early-career postings in the session's city (or country) for the student's target roles,
-    plus country-wide MBA programs whose city is matched after hire. Set target roles first. Web search ~17k tokens per
+    ALL current intern / MBA / early-career postings (any function) in the session's city (or country), plus
+    country-wide MBA programs whose city is matched after hire. No need to ask about role types. Web search ~17k tokens per
     company; companies checked in the last 24h are skipped unless force=True. Saves careers URLs to the tracker."""
     s = ctx.deps
     if not s.country:
@@ -531,13 +524,11 @@ async def check_job_postings(ctx: RunContext[Session], force: bool = False) -> s
     tracked = db.tracker_rows(conn, s.id)
     if not tracked:
         return "Tracker is empty. Ask the student to pick 5-15 companies first."
-    if not s.target_roles:
-        return "Ask the student which role types they want (e.g. strategy, product, finance) and call set_target_roles first."
     key = _location_key(s)
-    roles = ", ".join(sorted(s.target_roles))
+    roles = "all early-career"  # cache key: scans cover every early-career role
     todo = [(c, None if url == "-" else url) for c, _, url, _, _ in tracked
             if force or not db.recently_scanned(conn, c, key, roles)]
-    scans, errors = await scan_many(todo, s.country, s.city, s.target_roles)
+    scans, errors = await scan_many(todo, s.country, s.city)
     new_total = 0
     for company, scan in scans.items():
         new_total += db.save_posting_scan(conn, company, key, scan, roles)

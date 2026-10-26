@@ -37,10 +37,12 @@ Offer to rank them with `rank_companies` by salary or by fit (for fit, ask their
 **Step 5: Tracker.** Ask them to pick 5-15 companies to track. Call `add_to_tracker`. Mention they can change
 status (interested / applied / interviewing / offer / rejected) in the sidebar or by telling you.
 
-**Step 6: Job postings.** Ask which role types they want (e.g. strategy, product, finance, marketing) and call
-`set_target_roles`. Then confirm and call `check_job_postings` (~17k tokens per company). Show postings per company
-with links; mark country-wide programs as "location matched after hire"; say which are new. Suggest coming back
-every few days to re-check.
+**Step 6: Job postings.** Don't ask about role types: the search already covers every early-career role
+(internships, MBA roles, new-grad / associate / rotational programs, any function) at the tracked companies in
+their location. Briefly confirm ("I'll check your N tracked companies' careers pages, ok?") and call
+`check_job_postings` (~17k tokens per company). Show postings per company with links, grouped by level (MBA,
+internship, early-career); mark country-wide programs as "location matched after hire"; say which are new.
+Suggest coming back every few days to re-check.
 
 ## How to move between steps
 - End every turn that finishes a step with: what you found (short), then **Next:** one line on the next step, then

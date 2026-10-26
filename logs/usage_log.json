@@ -886,5 +886,185 @@
     "cached_input_tokens": 0,
     "output_tokens": 595,
     "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:29:40+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 4300,
+    "cached_input_tokens": 0,
+    "output_tokens": 193,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:29:59+00:00",
+    "label": "company_researcher:Deloitte",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 18194,
+    "cached_input_tokens": 4813,
+    "output_tokens": 986,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:30:03+00:00",
+    "label": "company_researcher:Kearney",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 24375,
+    "cached_input_tokens": 4813,
+    "output_tokens": 759,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T00:30:07+00:00",
+    "label": "company_researcher:Accenture",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 19031,
+    "cached_input_tokens": 4813,
+    "output_tokens": 1015,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:30:09+00:00",
+    "label": "company_researcher:McKinsey & Company",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 16475,
+    "cached_input_tokens": 4813,
+    "output_tokens": 1014,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:30:10+00:00",
+    "label": "company_researcher:MNP",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 19556,
+    "cached_input_tokens": 4813,
+    "output_tokens": 745,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T00:30:14+00:00",
+    "label": "company_researcher:BDO Canada",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13219,
+    "cached_input_tokens": 4813,
+    "output_tokens": 1035,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:30:14+00:00",
+    "label": "company_researcher:JTE Claims Consultants Ltd.",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 13184,
+    "cached_input_tokens": 4813,
+    "output_tokens": 466,
+    "web_searches": 3
+  },
+  {
+    "time": "2026-10-26T00:30:24+00:00",
+    "label": "company_researcher:Optimus SBR",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 14685,
+    "cached_input_tokens": 4813,
+    "output_tokens": 606,
+    "web_searches": 4
+  },
+  {
+    "time": "2026-10-26T00:30:28+00:00",
+    "label": "company_researcher:Cognizant",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 22120,
+    "cached_input_tokens": 4813,
+    "output_tokens": 1021,
+    "web_searches": 5
+  },
+  {
+    "time": "2026-10-26T00:30:28+00:00",
+    "label": "company_researcher:AlixPartners",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 24406,
+    "cached_input_tokens": 4813,
+    "output_tokens": 979,
+    "web_searches": 8
+  },
+  {
+    "time": "2026-10-26T00:30:29+00:00",
+    "label": "company_researcher:PricewaterhouseCoopers",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 22710,
+    "cached_input_tokens": 4813,
+    "output_tokens": 1324,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T00:30:40+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 12373,
+    "cached_input_tokens": 4297,
+    "output_tokens": 1765,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:34:34+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 9564,
+    "cached_input_tokens": 7870,
+    "output_tokens": 84,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:34:42+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 9663,
+    "cached_input_tokens": 9561,
+    "output_tokens": 83,
+    "web_searches": 0
+  },
+  {
+    "time": "2026-10-26T00:37:01+00:00",
+    "label": "job_scout:Scotiabank",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 19895,
+    "cached_input_tokens": 4817,
+    "output_tokens": 815,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T00:37:04+00:00",
+    "label": "job_scout:Amazon",
+    "model": "gpt-6-luna",
+    "requests": 1,
+    "input_tokens": 28480,
+    "cached_input_tokens": 0,
+    "output_tokens": 1867,
+    "web_searches": 6
+  },
+  {
+    "time": "2026-10-26T00:37:11+00:00",
+    "label": "boss",
+    "model": "gpt-6-luna",
+    "requests": 2,
+    "input_tokens": 5324,
+    "cached_input_tokens": 0,
+    "output_tokens": 840,
+    "web_searches": 0
   }
 ]

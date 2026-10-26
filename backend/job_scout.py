@@ -1,6 +1,6 @@
 """Job Posting Scout agent: for each company on the student's tracker, finds the careers page and current
-internship / MBA / early-career postings in the target city (or country) for the student's target role types,
-plus country-wide MBA programs whose location is matched after hire.
+internship / MBA / early-career postings (any function) in the target city (or country), plus country-wide MBA
+programs whose location is matched after hire.
 
 Model searches; code keeps only postings with a working link, and tracks which ones are new since the last check.
 """
@@ -19,16 +19,16 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (MBA job tracker; student project)"}
 INSTRUCTIONS = """You are the Job Posting Scout. For one company, find:
 1. Its official careers / job search page (company domain or its official applicant tracking system, e.g.
    Workday, Greenhouse, Lever, SmartRecruiters, iCIMS, Taleo).
-2. CURRENT job postings in the given city (or anywhere in the country if no city) that are for interns/co-ops,
-   MBA students/graduates, or early-career / new-grad / associate programs, AND match the student's target role
-   types (e.g. strategy, product, finance). Skip roles outside those types (e.g. software engineering when the
-   student wants strategy), unless no target roles are given.
+2. ALL current early-career job postings in the given city (or anywhere in the country if no city), in any
+   function: internships / co-ops / summer roles, MBA-specific roles (e.g. MBA Associate, Summer Associate),
+   new-grad / graduate / analyst / associate programs, and rotational or leadership development programs.
 3. Country-wide MBA / leadership / rotational programs (e.g. Amazon Pathways) where the city is decided after
    hire: include them with location_flexible=true and location like "Canada (location matched after hire)".
 
 - Each posting needs a direct URL to that posting (company site, its ATS, or a LinkedIn/Indeed job page).
 - Skip senior roles (manager+, director, VP, 5+ years' experience) and roles outside the location.
-- Only list postings you actually saw in sources; never invent titles or links. Up to 10 postings.
+- Only list postings you actually saw in sources; never invent titles or links. Up to 15 postings, MBA-specific
+  roles first, then internships, then other early-career roles.
 - If nothing matches, return no postings and say so in note (plus any known MBA recruiting timing).
 - Use at most 4 searches.
 
@@ -56,10 +56,8 @@ async def link_alive(client: httpx.AsyncClient, url: str) -> bool:
         return False
 
 
-async def scan_company(company: str, country: str, city: str | None, careers_hint: str | None,
-                       roles: list[str]) -> PostingScan:
+async def scan_company(company: str, country: str, city: str | None, careers_hint: str | None) -> PostingScan:
     prompt = (f"Company: {company}\nCountry: {country}\nCity: {city or 'any'}\n"
-              f"Target role types: {', '.join(roles) or 'any business role'}\n"
               f"Known careers page (may be outdated): {careers_hint or 'unknown'}")
     result = await run_logged(agent, prompt, f"job_scout:{company}", model=responses_model())
     scan = result.output
@@ -71,14 +69,14 @@ async def scan_company(company: str, country: str, city: str | None, careers_hin
     return scan
 
 
-async def scan_many(companies: list[tuple[str, str | None]], country: str, city: str | None, roles: list[str]):
+async def scan_many(companies: list[tuple[str, str | None]], country: str, city: str | None):
     """companies = [(name, careers_url hint)]. Returns ({company: PostingScan}, errors)."""
     sem = asyncio.Semaphore(CONCURRENCY)
 
     async def one(name: str, hint: str | None):
         async with sem:
             try:
-                return name, await scan_company(name, country, city, hint, roles)
+                return name, await scan_company(name, country, city, hint)
             except Exception as e:
                 return name, f"{type(e).__name__}"
 

@@ -56,14 +56,8 @@ export default function Sidebar({ me, tracker, postings, onChange, next, onNext,
         <dl className="facts">
           <dt>Location</dt>
           <dd>{location ?? <span className="muted">Not set yet</span>}</dd>
-          <dt>Target roles</dt>
-          <dd>
-            {me?.target_roles.length ? (
-              me.target_roles.map((r) => <span key={r} className="tag">{r}</span>)
-            ) : (
-              <span className="muted">Not set yet</span>
-            )}
-          </dd>
+          <dt>Job search</dt>
+          <dd>All internship, MBA &amp; early-career roles</dd>
         </dl>
       </div>
 

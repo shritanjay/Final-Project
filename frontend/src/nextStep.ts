@@ -34,7 +34,7 @@ export function actionFor(step: number | null, nTracked: number, list: string, h
         hint: "Choose 5–15 companies with + Track in the Employers table.", kind: hasTable ? "employers" : "chat",
         message: "Help me pick 5-15 companies for my tracker." };
     case 6:
-      return { step, label: "Find job postings →", hint: "Check your tracked companies' careers pages for intern / MBA roles.",
+      return { step, label: "Find job postings →", hint: "Check your tracked companies for all internship, MBA and early-career openings.",
         kind: "chat", message: "Let's find job postings for my tracked companies." };
     default:
       return { step: null, label: "Check for new postings →", hint: "All steps done. Re-check your tracked companies every few days.",

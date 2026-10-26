@@ -103,3 +103,6 @@ new chat is not working. Help to make it work. so that  i can reset the whole th
 
 ## 26. Next-step button
 When I tried the search and when I did that, it showed me all the employers and I was able to select which employers I wanted to track. However, it doesn't after that have like a next button or anything that takes me to the next step, because then I get stuck at step 4 or 5 out of 6 . Can you help fix that?
+
+## 27. Search all early-career roles
+i want the tracker when job finding. to search for all early careers. it asks what - consulting etc. when given a location and intern/full time roles and a company. it is already limited. so just search all early career stuff

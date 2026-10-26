@@ -60,7 +60,7 @@ Drop employment report PDFs in `data/reports/` and run `python analyze_reports.p
 **Guided path.** The chat opens with "Hey! Where do you want to work after your MBA?" (static, no tokens), then the
 boss walks the student through 6 steps in order, showing results and asking before each next step:
 1. Where to work (city + country) → 2. Employment reports (agents find them, or the student uploads) →
-3. Employers by industry → 4. Research companies → 5. Tracker (5–15) → 6. Job postings.
+3. Employers by industry → 4. Research companies → 5. Tracker (5–15) → 6. Job postings (all early-career roles).
 Each specialist tool marks its step done in code (`Session.stage`, a bitmask of completed steps saved in
 `user_prefs.stage`), so the boss always knows the next step, even for returning students. A **Next step** button (under "Your path" and at the bottom of
 the Employers table; `frontend/src/nextStep.ts`) always offers the next action, e.g. "Research my 4 tracked
@@ -139,8 +139,9 @@ Groups employers from the analyzed reports of the city's top 3 MBA programs into
 ## Job Posting Scout
 For every company on the student's tracker (10–15), finds the careers page and current **internship / MBA /
 early-career** postings in the city (or country) — boss tools `check_job_postings` and `view_job_postings`.
-- The boss first asks for the student's **target role types** (e.g. strategy, product, finance; `set_target_roles`);
-  postings outside those types are skipped. Changing roles triggers a fresh scan (cache key includes roles).
+- Searches **all** early-career roles at the tracked companies in the location, in any function: internships /
+  co-ops, MBA roles, new-grad / associate / rotational / leadership programs (the tracker already narrows by company,
+  location and level, so the boss doesn't ask about role types). Up to 15 postings per company, MBA roles first.
 - Country-wide MBA / rotational programs whose city is decided after hire (e.g. Amazon Pathways) are included and
   marked **"location matched after hire"** (`location_flexible`).
 - Web search per company (≈ 15–20k input tokens, 4 at a time). Companies checked in the last 24h are skipped
